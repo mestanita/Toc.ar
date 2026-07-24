@@ -84,9 +84,15 @@
     <!-- 🖼️ FLYER DEL EVENTO (OPCIONAL WITH FALLBACK) -->
     <div class="form-group">
       <label><i class="fas fa-image" style="color: #38bdf8;"></i> Flyer Promocional del Evento (Opcional)</label>
+      <% if (evento.imageUrl) { %>
+        <div style="margin-bottom: 10px;">
+          <img src="<%= evento.imageUrl %>" alt="Imagen actual del evento" style="max-width: 200px; border-radius: 6px; border: 1px solid #334155;">
+          <p style="font-size: 12px; color: #94a3b8; margin: 5px 0 0 0;">Imagen actual</p>
+        </div>
+      <% } %>
       <input type="file" name="flyerFile" accept="image/*">
       <small style="color: #94a3b8; font-size: 12px; display: block; margin-top: 5px;">
-        * Si no adjuntas un flyer, el evento se publicará utilizando la imagen de perfil/logo del organizador.
+        * Si no adjuntas un flyer, se mantendrá la imagen actual o se utilizará la imagen de perfil/logo del organizador.
       </small>
     </div>
 
@@ -94,15 +100,20 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
       <div class="form-group">
         <label>Fecha del Evento</label>
-        <input type="date" name="fecha" id="fechaEventoInput" required onchange="recalcularLimitesPreventa()">
+        <input type="date" name="fecha" id="fechaEventoInput" value="<%= evento.fechaInicio.toISOString().split('T')[0] %>" required onchange="recalcularLimitesPreventa()">
       </div>
       <div class="form-group">
         <label>Hora de Inicio</label>
         <select name="hora" required>
+          <% 
+            const eventHour = evento.fechaInicio.getHours();
+            const eventMinute = evento.fechaInicio.getMinutes();
+            const horaActual = (eventHour < 10 ? '0' : '') + eventHour; 
+          %>
           <% for(let h = 0; h < 24; h++) { %>
             <% let horaStr = (h < 10 ? '0' : '') + h; %>
-            <option value="<%= horaStr %>:00"><%= horaStr %>:00 hs</option>
-            <option value="<%= horaStr %>:30"><%= horaStr %>:30 hs</option>
+            <option value="<%= horaStr %>:00" <%= horaStr === horaActual && eventMinute === 0 ? 'selected' : '' %>><%= horaStr %>:00 hs</option>
+            <option value="<%= horaStr %>:30" <%= horaStr === horaActual && eventMinute === 30 ? 'selected' : '' %>><%= horaStr %>:30 hs</option>
           <% } %>
         </select>
       </div>
@@ -122,6 +133,19 @@
             <span style="font-size: 12px; color: #64748b;">(Creador)</span>
           </div>
         <% } %>
+        <% artistasIds.forEach(id => { 
+             if (user.role === 'Artista' && defaultArtist && id === defaultArtist._id.toString()) return; 
+             const artistObj = artistasData.find(a => a._id.toString() === id);
+             if (artistObj) { 
+        %>
+          <div class="artist-card" data-id="<%= artistObj._id %>" data-nombre="<%= artistObj.nombre %>">
+            <span><i class="fas fa-music" style="color: #38bdf8;"></i> <%= artistObj.nombre %></span>
+            <input type="hidden" name="artistasIds" value="<%= artistObj._id %>">
+            <div class="controls">
+              <button type="button" class="btn-icon btn-remove" onclick="removerArtista(this)"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        <% } }); %>
       </div>
     </div>
 
@@ -138,16 +162,16 @@
         <input type="text" id="placeSearchInput" placeholder="Buscar establecimiento registrado en toc.ar...">
         <div id="placeSuggestions" class="suggestions-list" style="display: none;"></div>
 
-        <input type="hidden" name="establecimientoId" id="selectedPlaceId" value="">
+        <input type="hidden" name="establecimientoId" id="selectedPlaceId" value="<%= evento.establecimiento ? evento.establecimiento._id : '' %>">
 
-        <div id="placeSelectedBox" class="box-sub" style="display:none;">
-          <span>Lugar Seleccionado: <strong id="placeNameDisplay"></strong></span>
+        <div id="placeSelectedBox" class="box-sub" style="<%= evento.establecimiento ? 'display:block;' : 'display:none;' %>">
+          <span>Lugar Seleccionado: <strong id="placeNameDisplay"><%= evento.establecimiento ? evento.establecimiento.nombre : '' %></strong></span>
           <button type="button" class="btn-icon btn-remove" style="float: right;" onclick="limpiarLugar()"><i class="fas fa-times"></i></button>
         </div>
 
         <div id="manualAddressBox" style="margin-top: 15px;">
           <label style="font-size: 12px; color: #38bdf8;">Dirección Física (Si no usas un local registrado):</label>
-          <input type="text" id="direccionManualInput" name="direccionManual" placeholder="Escribe una dirección (ej: Av. Roca 1234, General Roca)...">
+          <input type="text" id="direccionManualInput" name="direccionManual" value="<%= evento.direccionManual || '' %>" placeholder="Escribe una dirección (ej: Av. Roca 1234, General Roca)...">
           <input type="hidden" name="manualLat" id="manualLat">
           <input type="hidden" name="manualLng" id="manualLng">
         </div>
@@ -158,40 +182,40 @@
     <div class="form-group">
       <label>Tipo de Entrada</label>
       <select name="tipoEntrada" id="tipoEntradaSelect" onchange="actualizarCamposEntrada()">
-        <option value="Entrada Gratis">Entrada Gratis</option>
-        <option value="Link Externo">Link Externo</option>
-        <option value="Compra Online">Compra Online (toc.ar)</option>
+        <option value="Entrada Gratis" <%= evento.tipoEntrada === 'Entrada Gratis' ? 'selected' : '' %>>Entrada Gratis</option>
+        <option value="Link Externo" <%= evento.tipoEntrada === 'Link Externo' ? 'selected' : '' %>>Link Externo</option>
+        <option value="Compra Online" <%= evento.tipoEntrada === 'Compra Online' ? 'selected' : '' %>>Compra Online (toc.ar)</option>
       </select>
     </div>
 
-    <div id="boxLinkExterno" class="form-group" style="display: none;">
+    <div id="boxLinkExterno" class="form-group" style="<%= evento.tipoEntrada === 'Link Externo' ? 'display:block;' : 'display:none;' %>">
       <label>URL de Venta Externa</label>
-      <input type="text" name="linkExterno" placeholder="https://tuentrada.com/evento">
+      <input type="text" name="linkExterno" value="<%= evento.linkExterno || '' %>" placeholder="https://tuentrada.com/evento">
     </div>
 
-    <div id="boxCompraOnline" class="box-sub" style="display: none; margin-bottom: 20px;">
+    <div id="boxCompraOnline" class="box-sub" style="<%= evento.tipoEntrada === 'Compra Online' ? 'display:block;' : 'display:none;' %>; margin-bottom: 20px;">
       <div class="form-group">
         <label>Precio de la Entrada ($)</label>
-        <input type="number" name="precioEntrada" min="0" placeholder="Ej: 3000">
+        <input type="number" name="precioEntrada" min="0" value="<%= evento.precioEntrada || '' %>" placeholder="Ej: 3000">
       </div>
       <div class="form-group">
         <label>Preventa Habilitada</label>
         <select name="preventaHabilitada" id="preventaSelect" onchange="toggleFechaPreventa()">
-          <option value="true">Sí, habilitada inmediatamente</option>
-          <option value="false">No, se habilitará en una fecha específica</option>
+          <option value="true" <%= evento.preventaHabilitada === true ? 'selected' : '' %>>Sí, habilitada inmediatamente</option>
+          <option value="false" <%= evento.preventaHabilitada === false ? 'selected' : '' %>>No, se habilitará en una fecha específica</option>
         </select>
       </div>
 
-      <div class="form-group" id="boxFechaPreventa" style="display: none;">
+      <div class="form-group" id="boxFechaPreventa" style="<%= evento.tipoEntrada === 'Compra Online' && evento.preventaHabilitada === false ? 'display:block;' : 'display:none;' %>">
         <label>Fecha de Inicio de Preventa</label>
-        <input type="date" name="fechaInicioPreventa" id="fechaPreventaInput">
+        <input type="date" name="fechaInicioPreventa" id="fechaPreventaInput" value="<%= evento.fechaInicioPreventa ? evento.fechaInicioPreventa.toISOString().split('T')[0] : '' %>">
         <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 4px;">
           * Debe ser entre hoy y el día anterior al evento.
         </small>
       </div>
     </div>
 
-    <button type="button" class="btn-main" onclick="abrirModalInvitaciones()">Crear Evento</button>
+    <button type="button" class="btn-main" onclick="abrirModalInvitaciones()">Guardar Cambios</button>
   </form>
 </div>
 
@@ -323,6 +347,12 @@
     }
   }
   window.addEventListener('load', initMapsAutocomplete);
+
+  // Inicializar valores del evento al cargar la página
+  window.addEventListener('load', () => {
+    actualizarCamposEntrada();
+    toggleFechaPreventa();
+  });
 
   // Búsqueda AJAX de Artistas
   const artistInput = document.getElementById('artistSearchInput');

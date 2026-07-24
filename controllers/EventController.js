@@ -200,13 +200,17 @@ exports.renderEditEvent = async (req, res) => {
 
     // Obtener artistas invitados
     const artistasIds = evento.artistas.map(a => a.artistaId ? a.artistaId.toString() : null).filter(id => id);
+    
+    // Cargar datos completos de los artistas invitados para mostrar en el formulario
+    const artistasData = await Artist.find({ _id: { $in: artistasIds } }).select('_id nombre avatar subdomain');
 
     res.render('event-edit', {
       user,
       evento,
       defaultArtist,
       defaultPlace,
-      artistasIds
+      artistasIds,
+      artistasData
     });
   } catch (error) {
     console.error('Error cargando formulario de edición de evento:', error);
@@ -288,6 +292,31 @@ exports.updateEvent = async (req, res) => {
     let imageUrl = evento.imageUrl;
     if (req.file) {
       imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    // Verificar si hubo cambios en los invitados (artistas o establecimiento)
+    const artistasOriginalesIds = evento.artistas.map(a => a.artistaId ? a.artistaId.toString() : null).filter(id => id);
+    const hayCambiosArtistas = JSON.stringify(artistasOriginalesIds.sort()) !== JSON.stringify(idsProcesados.sort());
+    const hayCambiosEstablecimiento = !evento.establecimiento && establecimientoId || 
+                                       evento.establecimiento && (!establecimientoId || evento.establecimiento.toString() !== establecimientoId);
+    
+    // Si hubo cambios en invitados, el evento queda Pendiente hasta que todos aprueben
+    if (hayCambiosArtistas || hayCambiosEstablecimiento) {
+      // Resetear estados de invitación para los nuevos/eliminados
+      artistasOrdenados.forEach(artObj => {
+        const esElCreador = (user.role === 'Artista' && user.artistProfile && user.artistProfile.toString() === artObj.artistaId);
+        const existiaAntes = artistasOriginalesIds.includes(artObj.artistaId);
+        
+        if (!existiaAntes && !esElCreador) {
+          artObj.estadoInvitacion = 'Pendiente'; // Nuevo invitado
+        }
+      });
+      
+      if (hayCambiosEstablecimiento && estadoLugar !== 'NoAplica') {
+        estadoLugar = (user.role === 'Establecimiento' && user.placeProfile && user.placeProfile.toString() === establecimientoId) 
+          ? 'Aceptado' 
+          : 'Pendiente';
+      }
     }
 
     // Verificar si el evento nace 100% aceptado
