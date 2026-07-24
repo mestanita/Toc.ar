@@ -158,3 +158,175 @@ exports.createEvent = async (req, res) => {
     res.status(500).send('Error interno al procesar el evento');
   }
 };
+
+/**
+ * Renderiza el formulario de edición de evento
+ */
+exports.renderEditEvent = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.redirect('/auth/login');
+
+    const eventId = req.params.id;
+    const evento = await Event.findById(eventId);
+
+    if (!evento) {
+      return res.status(404).send('Evento no encontrado');
+    }
+
+    // Verificar permisos: solo el creador puede editar
+    if (evento.creatorUser.toString() !== user._id.toString()) {
+      return res.status(403).send('No tienes permisos para editar este evento');
+    }
+
+    // CORRECCIÓN: Si direccionManual es un objeto (dato corrupto antiguo), convertirlo a string o null
+    if (evento.direccionManual && typeof evento.direccionManual === 'object') {
+      // Intentar construir un string legible o simplemente limpiarlo
+      const dir = evento.direccionManual;
+      evento.direccionManual = `${dir.calle || ''} ${dir.numero || ''}, ${dir.ciudad || ''}, ${dir.provincia || ''}`.trim();
+      
+      // Guardar la corrección en la BD para futuros accesos
+      await Event.findByIdAndUpdate(eventId, { direccionManual: evento.direccionManual });
+    }
+
+    let defaultArtist = null;
+    let defaultPlace = null;
+
+    if (user.role === 'Artista' && user.artistProfile) {
+      defaultArtist = await Artist.findById(user.artistProfile);
+    } else if (user.role === 'Establecimiento' && user.placeProfile) {
+      defaultPlace = await Place.findById(user.placeProfile);
+    }
+
+    // Obtener artistas invitados
+    const artistasIds = evento.artistas.map(a => a.artistaId ? a.artistaId.toString() : null).filter(id => id);
+
+    res.render('event-edit', {
+      user,
+      evento,
+      defaultArtist,
+      defaultPlace,
+      artistasIds
+    });
+  } catch (error) {
+    console.error('Error cargando formulario de edición de evento:', error);
+    res.status(500).send('Error interno del servidor');
+  }
+};
+
+/**
+ * Actualiza un evento existente
+ */
+exports.updateEvent = async (req, res) => {
+  try {
+    const user = req.user;
+    const eventId = req.params.id;
+    
+    const evento = await Event.findById(eventId);
+    if (!evento) {
+      return res.status(404).send('Evento no encontrado');
+    }
+
+    // Verificar permisos: solo el creador puede editar
+    if (evento.creatorUser.toString() !== user._id.toString()) {
+      return res.status(403).send('No tienes permisos para editar este evento');
+    }
+
+    const { 
+      nombre, fecha, hora, artistasIds, 
+      establecimientoId, direccionManual, manualLat, manualLng,
+      tipoEntrada, linkExterno, precioEntrada, preventaHabilitada, fechaInicioPreventa 
+    } = req.body;
+
+    const [horas, minutos] = (hora || '21:00').split(':');
+    const fechaHoraInicio = new Date(fecha);
+    fechaHoraInicio.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+
+    let idsProcesados = Array.isArray(artistasIds) ? artistasIds : (artistasIds ? [artistasIds] : []);
+    
+    // Si el creador es Artista, se incluye obligatoriamente
+    if (user.role === 'Artista' && user.artistProfile) {
+      const artIdStr = user.artistProfile.toString();
+      if (!idsProcesados.includes(artIdStr)) {
+        idsProcesados.unshift(artIdStr);
+      }
+    }
+
+    // Mantener el estado de invitación existente para artistas que ya estaban
+    const artistasOrdenados = idsProcesados.map((id, index) => {
+      const existingInvite = evento.artistas.find(a => a.artistaId && a.artistaId.toString() === id);
+      const esElCreador = (user.role === 'Artista' && user.artistProfile && user.artistProfile.toString() === id);
+      
+      return {
+        artistaId: id,
+        orden: index,
+        estadoInvitacion: existingInvite ? existingInvite.estadoInvitacion : (esElCreador ? 'Aceptado' : 'Pendiente')
+      };
+    });
+
+    let coords = [0, 0];
+    let estadoLugar = evento.estadoInvitacionLugar || 'NoAplica';
+
+    if (establecimientoId) {
+      const placeDoc = await Place.findById(establecimientoId);
+      if (placeDoc && placeDoc.location) {
+        coords = placeDoc.location.coordinates;
+      }
+      // Mantener estado si ya existía, sino aplicar lógica nueva
+      if (evento.establecimiento && evento.establecimiento.toString() === establecimientoId) {
+        estadoLugar = evento.estadoInvitacionLugar;
+      } else {
+        estadoLugar = (user.role === 'Establecimiento' && user.placeProfile && user.placeProfile.toString() === establecimientoId) 
+          ? 'Aceptado' 
+          : 'Pendiente';
+      }
+    } else if (manualLat && manualLng) {
+      coords = [parseFloat(manualLng), parseFloat(manualLat)];
+    }
+
+    // 🖼️ DETERMINAR FLYER O MANTENER EL EXISTENTE
+    let imageUrl = evento.imageUrl;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    // Verificar si el evento nace 100% aceptado
+    const hayArtistasPendientes = artistasOrdenados.some(a => a.estadoInvitacion === 'Pendiente');
+    const hayLugarPendiente = (estadoLugar === 'Pendiente');
+    const estadoGeneral = (!hayArtistasPendientes && !hayLugarPendiente) ? 'Publicado' : 'Pendiente';
+
+    // CORRECCIÓN: Asegurar que direccionManual sea un string o null antes de guardar
+    let direccionManualFinal = null;
+    if (!establecimientoId) {
+      // Si es un objeto (dato corrupto), intentar convertirlo
+      if (typeof direccionManual === 'object' && direccionManual !== null) {
+        const dir = direccionManual;
+        direccionManualFinal = `${dir.calle || ''} ${dir.numero || ''}, ${dir.ciudad || ''}, ${dir.provincia || ''}`.trim();
+      } else if (typeof direccionManual === 'string') {
+        direccionManualFinal = direccionManual;
+      }
+    }
+
+    await Event.findByIdAndUpdate(eventId, {
+      nombre,
+      estadoGeneral,
+      fechaInicio: fechaHoraInicio,
+      artistas: artistasOrdenados,
+      establecimiento: establecimientoId || null,
+      estadoInvitacionLugar: estadoLugar,
+      direccionManual: direccionManualFinal,
+      location: { type: 'Point', coordinates: coords },
+      tipoEntrada,
+      linkExterno: tipoEntrada === 'Link Externo' ? linkExterno : null,
+      precioEntrada: tipoEntrada === 'Compra Online' ? (parseFloat(precioEntrada) || 0) : 0,
+      preventaHabilitada: tipoEntrada === 'Compra Online' ? (preventaHabilitada === 'true' || preventaHabilitada === true) : true,
+      fechaInicioPreventa: (tipoEntrada === 'Compra Online' && preventaHabilitada === 'false' && fechaInicioPreventa) ? new Date(fechaInicioPreventa) : null,
+      imageUrl
+    });
+
+    res.redirect('/panel');
+  } catch (error) {
+    console.error('Error actualizando evento:', error);
+    res.status(500).send('Error interno al actualizar el evento');
+  }
+};
