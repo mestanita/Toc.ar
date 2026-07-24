@@ -8,12 +8,12 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, default: null },
   avatar: { type: String, default: 'https://placehold.co/150x150?text=User' },
-  
+
   // ROL Y VÍNCULO DE PERFIL
-  role: { 
-    type: String, 
-    enum: ['Espectador', 'Artista', 'Establecimiento'], 
-    default: 'Espectador' 
+  role: {
+    type: String,
+    enum: ['Espectador', 'Artista', 'Establecimiento'],
+    default: 'Espectador'
   },
   artistProfile: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', default: null },
   placeProfile: { type: mongoose.Schema.Types.ObjectId, ref: 'Place', default: null },
