@@ -373,9 +373,6 @@ app.post('/api/events/:id/dismiss-cancelled', requireAuth, PanelController.dismi
 // Rutas de Creación de Evento
 app.get('/events/new', requireAuth, EventController.renderCreateEvent);
 
-// Rutas de Edición de Evento
-app.get('/events/edit/:id', requireAuth, EventController.renderEditEvent);
-
 app.get('/api/artists/search', EventController.searchArtists);
 app.get('/api/places/search', EventController.searchPlaces);
 app.post('/api/events/create', requireAuth, upload.single('flyerFile'), EventController.createEvent);
