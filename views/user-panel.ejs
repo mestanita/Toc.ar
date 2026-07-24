@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Panel - Espectador</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f4f6f9; }
+    header { background: #0d4b75; color: #fff; padding: 15px 30px; display: flex; justify-content: space-between; }
+    .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2><i class="fas fa-user-circle"></i> Mi Cuenta Espectador</h2>
+    <div>Hola, <%= currentUser.nombre %> | <a href="/auth/logout" style="color:#fff;">Salir</a></div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h3><i class="fas fa-ticket-alt"></i> Mis Entradas y Pases Digitales</h3>
+      <% if (misEntradas.length === 0) { %>
+        <p>Aún no posees entradas registradas.</p>
+      <% } else { %>
+        <% misEntradas.forEach(e => { %>
+          <p><strong><%= e.nombre %></strong> - <%= e.artistaOrganizador?.nombre %> en <%= e.establecimiento?.nombre %></p>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3><i class="fas fa-heart"></i> Artistas y Locales que Sigo</h3>
+      <p>Artistas: <%= currentUser.artistasSeguidos.length %></p>
+      <p>Establecimientos: <%= currentUser.establecimientosSeguidos.length %></p>
+    </div>
+  </div>
+
+</body>
+</html>

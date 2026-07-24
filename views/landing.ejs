@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¿Quién va a tocar? - toc.ar</title>
+  
+  <style>
+    /* ---- REORGANIZACIÓN ESTÉTICA ---- */
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f9;
+      color: #333;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      background: white;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #0b4f8c;
+    }
+    .header-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #f0f2f5;
+      padding: 6px 15px;
+      border-radius: 30px;
+      width: 45%;
+    }
+    .header-search-bar input[type="text"] {
+      border: none;
+      background: transparent;
+      font-size: 15px;
+      width: 65%;
+      outline: none;
+    }
+    .header-search-bar .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 35%;
+      border-left: 1px solid #ccc;
+      padding-left: 10px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .header-search-bar input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+    .auth-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-registrar {
+      background-color: #e2583e;
+      color: white;
+      padding: 8px 18px;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ---- BANNER DE EVENTOS DESTACADOS ---- */
+    .carousel-container {
+      max-width: 1100px;
+      margin: 25px auto;
+      position: relative;
+      height: 320px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .carousel-slide {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      display: none;
+      position: relative;
+    }
+    .carousel-slide.active { display: block; }
+    .carousel-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      color: white;
+      padding: 30px 40px;
+    }
+    .carousel-caption h2 { margin: 0 0 8px 0; font-size: 28px; }
+    .carousel-dots {
+      position: absolute;
+      bottom: 15px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      background-color: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .dot.active { background-color: white; transform: scale(1.2); }
+
+    /* ---- GRILLA DE TARJETAS ---- */
+    .main-content {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #1a365d;
+    }
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+    }
+    .event-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    .card-img {
+      width: 100%;
+      height: 180px;
+      background-size: cover;
+      background-position: center;
+    }
+    .card-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+    .artist-name { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #0b4f8c; text-decoration: none; }
+    .artist-name:hover { text-decoration: underline; }
+    .stars { color: #f1c40f; font-size: 14px; margin-bottom: 12px; }
+    .event-details { font-size: 14px; color: #555; margin-bottom: 15px; line-height: 1.4; }
+    .card-actions { display: flex; gap: 10px; margin-top: auto; }
+    .btn-action {
+      flex: 2;
+      padding: 10px;
+      text-align: center;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .btn-buy { background: #0b4f8c; color: white; border: none; }
+    .btn-free { background: #2ecc71; color: white; border: none; text-align: center; }
+    .btn-share { flex: 1; background: #e4e6eb; color: #333; border: none; cursor: pointer; }
+
+    /* ---- RADAR ---- */
+    .map-modal-overlay {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 320px;
+      height: 320px;
+      display: none;
+      z-index: 999;
+    }
+    .map-modal-content {
+      background: white;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      border: 4px solid white;
+    }
+    #map { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <img src="/images/toc-ar-logo-icon.png" alt="Logo TOC AR" width="42" height="42">
+      ¿Quién va a tocar?
+    </div>
+
+    <div class="header-search-bar">
+      <span>📍</span>
+      <input type="text" id="autocompleteUbicacion" placeholder="Buscando tu ubicación...">
+      <div class="slider-box">
+        <span id="radioValor">6 km</span>
+        <input type="range" id="radioBusqueda" min="1" max="50" value="6">
+      </div>
+    </div>
+
+    <div class="auth-buttons">
+      <% if (currentUser) { %>
+        <span style="font-size:14px;">Hola, <strong><%= currentUser.name %></strong></span>
+        <a href="/auth/logout" class="btn-registrar" style="background-color: #555;">Salir</a>
+      <% } else { %>
+        <a href="/auth/google" class="btn-registrar" style="background-color: #4285F4;">Google</a>
+        <a href="/auth/facebook" class="btn-registrar" style="background-color: #3b5998;">Facebook</a>
+      <% } %>
+    </div>
+  </header>
+
+  <div class="carousel-container" id="carouselContainer">
+    <div class="carousel-dots" id="carouselDots"></div>
+  </div>
+
+  <main class="main-content">
+    <div class="section-title">📅 Próximos eventos en tu zona</div>
+    <div class="events-grid" id="eventsGrid"></div>
+  </main>
+
+  <div id="mapModal" class="map-modal-overlay">
+    <div class="map-modal-content">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    let mapInstance = null;
+    let searchCircle = null;
+    let autocompleteInstance = null;
+    let carouselInterval = null;
+    let currentSlideIndex = 0;
+    
+    let currentCoords = { lat: -39.0325, lng: -67.5744 };
+
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyAnapFRmAdB3WalCY8uIrNlyeFLgE1lrpo'; 
+
+    const radioInput = document.getElementById('radioBusqueda');
+    const radioValorText = document.getElementById('radioValor');
+    const mapModal = document.getElementById('mapModal');
+    const inputUbicacion = document.getElementById('autocompleteUbicacion');
+
+    window.initMap = function() {
+      mapInstance = new google.maps.Map(document.getElementById('map'), {
+        center: currentCoords,
+        zoom: 11,
+        disableDefaultUI: true
+      });
+
+      searchCircle = new google.maps.Circle({
+        strokeColor: '#0b4f8c',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#0b4f8c',
+        fillOpacity: 0.25,
+        map: mapInstance,
+        center: currentCoords,
+        radius: parseInt(radioInput.value, 10) * 1000
+      });
+
+      initPlacesAutocomplete();
+      detectUserLocation();
+    };
+
+    function detectUserLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentCoords.lat = position.coords.latitude;
+            currentCoords.lng = position.coords.longitude;
+            actualizarCentroMapa(currentCoords);
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: currentCoords }, (results, status) => {
+              if (status === "OK" && results[0]) {
+                inputUbicacion.value = results[0].formatted_address;
+              }
+              fetchTodo();
+            });
+          },
+          () => {
+            inputUbicacion.value = "General Roca, Río Negro, Argentina";
+            fetchTodo();
+          }
+        );
+      } else {
+        inputUbicacion.value = "General Roca, Río Negro, Argentina";
+        fetchTodo();
+      }
+    }
+
+    function initPlacesAutocomplete() {
+      autocompleteInstance = new google.maps.places.Autocomplete(inputUbicacion, {
+        types: ['(cities)'],
+        componentRestrictions: { country: 'ar' }
+      });
+
+      autocompleteInstance.addListener('place_changed', () => {
+        const place = autocompleteInstance.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+        
+        currentCoords.lat = place.geometry.location.lat();
+        currentCoords.lng = place.geometry.location.lng();
+        
+        actualizarCentroMapa(currentCoords);
+        fetchTodo();
+      });
+    }
+
+    function actualizarCentroMapa(coords) {
+      if (mapInstance) mapInstance.setCenter(coords);
+      if (searchCircle) searchCircle.setCenter(coords);
+    }
+
+    function updateCircleRadius() {
+      const kms = parseInt(radioInput.value, 10);
+      radioValorText.innerText = `${kms} km`;
+      if (searchCircle) searchCircle.setRadius(kms * 1000); 
+    }
+
+    function fetchTodo() {
+      const kms = radioInput.value;
+      fetch(`/api/events-featured?radiusKm=${kms}&lat=${currentCoords.lat}&lng=${currentCoords.lng}`)
+        .then(res => res.json())
+        .then(renderCarousel);
+
+      fetch(`/api/events-nearby?radiusKm=${kms}&lat=${currentCoords.lat}&lng=${currentCoords.lng}`)
+        .then(res => res.json())
+        .then(renderEventsGrid);
+    }
+
+    function renderCarousel(slides) {
+      clearInterval(carouselInterval);
+      const container = document.getElementById('carouselContainer');
+      container.innerHTML = '<div class="carousel-dots" id="carouselDots"></div>';
+      const dotsContainer = document.getElementById('carouselDots');
+
+      if(slides.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+      container.style.display = 'block';
+
+      slides.forEach((slide, idx) => {
+        const slideDiv = document.createElement('div');
+        slideDiv.className = `carousel-slide ${idx === 0 ? 'active' : ''}`;
+        slideDiv.style.backgroundImage = `url('${slide.artista.avatar}')`;
+        // CORREGIDO: El título del carrusel ahora viaja directo al subdominio del artista y establecimiento
+        slideDiv.innerHTML = `
+          <div class="carousel-caption">
+            <h2><a href="${slide.urlArtista}" style="color:white; text-decoration:none;">${slide.artista.nombre}</a> en <a href="${slide.urlEstablecimiento}" style="color:white; text-decoration:underline;">${slide.establecimiento.nombre}</a></h2>
+            <p>🔥 Evento destacado - ${new Date(slide.fecha).toLocaleDateString('es-AR')} a las ${new Date(slide.fecha).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}hs</p>
+          </div>
+        `;
+        container.appendChild(slideDiv);
+
+        const dot = document.createElement('div');
+        dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+        dot.addEventListener('click', () => gotoSlide(idx));
+        dotsContainer.appendChild(dot);
+      });
+
+      currentSlideIndex = 0;
+      carouselInterval = setInterval(nextSlide, 5000);
+    }
+
+    function gotoSlide(index) {
+      const slides = document.querySelectorAll('.carousel-slide');
+      const dots = document.querySelectorAll('.dot');
+      if(!slides.length) return;
+
+      slides[currentSlideIndex].classList.remove('active');
+      dots[currentSlideIndex].classList.remove('active');
+      currentSlideIndex = index;
+      slides[currentSlideIndex].classList.add('active');
+      dots[currentSlideIndex].classList.add('active');
+    }
+
+    function nextSlide() {
+      const slides = document.querySelectorAll('.carousel-slide');
+      if(!slides.length) return;
+      let next = (currentSlideIndex + 1) % slides.length;
+      gotoSlide(next);
+    }
+
+    function renderEventsGrid(events) {
+      const grid = document.getElementById('eventsGrid');
+      grid.innerHTML = '';
+
+      if (events.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #777; padding: 20px;">No se encontraron eventos en este radio de búsqueda.</p>';
+        return;
+      }
+
+      events.forEach(ev => {
+        const dateObj = new Date(ev.fecha);
+        const fechaStr = dateObj.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+        const horaStr = dateObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        
+        let starsHtml = '';
+        const fullStars = Math.floor(ev.artista.score);
+        for(let i=0; i<5; i++) { starsHtml += i < fullStars ? '★' : '☆'; }
+
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        
+        // CORREGIDO: Los hipervínculos del nombre del artista y del establecimiento ahora apuntan a sus respectivas propiedades dinámicas de subdominio (urlArtista y urlEstablecimiento)
+        card.innerHTML = `
+          <div class="card-img" style="background-image: url('${ev.artista.avatar}')"></div>
+          <div class="card-body">
+            <a href="${ev.urlArtista}" class="artist-name" target="_blank">${ev.artista.nombre}</a>
+            <div class="stars">${starsHtml} <span style="color:#666; font-size:12px;">(${ev.artista.score} - ${ev.artista.votes} votos)</span></div>
+            <div class="event-details">
+              📅 <strong>${fechaStr}</strong><br>
+              ⏰ A las ${horaStr} hs<br>
+              🏛️ El: <a href="${ev.urlEstablecimiento}" target="_blank" style="color:#0b4f8c; text-decoration:none;"><strong>${ev.establecimiento.nombre}</strong></a>
+            </div>
+            <div class="card-actions">
+              ${ev.tipoEntrada === 'Paga' 
+                ? `<a href="${ev.linkCompra}" class="btn-action btn-buy">Comprar Entrada</a>`
+                : `<span class="btn-action btn-free">Entrada Gratis</span>`
+              }
+              <button class="btn-action btn-share" onclick="navigator.clipboard.writeText(window.location.origin + '/evento/${ev.id}'); alert('¡Enlace copiado!');">Compartir</button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function showMapAndInteract() {
+      mapModal.style.display = 'flex';
+      if (mapInstance) {
+        mapInstance.setCenter(currentCoords);
+        google.maps.event.trigger(mapInstance, 'resize');
+      }
+      updateCircleRadius();
+    }
+
+    function hideMapAndFetch() {
+      mapModal.style.display = 'none';
+      fetchTodo();
+    }
+
+    radioInput.addEventListener('mousedown', showMapAndInteract);
+    radioInput.addEventListener('mouseup', hideMapAndFetch);
+    radioInput.addEventListener('touchstart', showMapAndInteract);
+    radioInput.addEventListener('touchend', hideMapAndFetch);
+    radioInput.addEventListener('input', updateCircleRadius);
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>

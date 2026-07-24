@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Establecimiento - <%= place.nombre %> | toc.ar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Carga segura de Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAnapFRmAdB3WalCY8uIrNlyeFLgE1lrpo&libraries=places"></script>
+
+  <style>
+    :root {
+      --primary: #0d4b75;
+      --secondary: #e75b37;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+      --border: #334155;
+    }
+
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+
+    header {
+      background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .header-user { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+    .header-user a { color: #fca5a5; text-decoration: none; font-weight: bold; }
+
+    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 240px 1fr; gap: 30px; }
+    @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+
+    .sidebar-menu { background: var(--card-bg); border-radius: 10px; padding: 15px; height: fit-content; border: 1px solid var(--border); }
+    .nav-tab {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 15px; margin-bottom: 8px; border: none; background: transparent; color: var(--subtext); text-align: left; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: all 0.2s;
+    }
+    .nav-tab:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-tab.active { background: var(--primary); color: white; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card-panel { background: var(--card-bg); border-radius: 10px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--border); }
+    .section-header { font-size: 18px; color: #38bdf8; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group.full { grid-column: span 2; }
+    @media (max-width: 600px) { .form-group.full { grid-column: span 1; } }
+
+    label { display: block; font-size: 13px; font-weight: bold; color: var(--subtext); margin-bottom: 6px; }
+    input[type="text"], input[type="email"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: #0f172a; color: white; box-sizing: border-box; font-size: 14px; }
+
+    .btn-action { background: var(--secondary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; transition: background 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+    .btn-action:hover { background: #d04825; }
+    .btn-green { background: #22c55e; }
+    .btn-green:hover { background: #16a34a; }
+
+    .event-item { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .event-info h4 { margin: 0 0 5px 0; font-size: 16px; color: white; }
+    .event-info p { margin: 0; font-size: 13px; color: var(--subtext); }
+
+    /* Estilos para Días y Horarios */
+    .days-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+    .day-checkbox {
+      display: flex; align-items: center; gap: 6px; background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; user-select: none;
+    }
+    .day-checkbox input[type="checkbox"] { cursor: pointer; accent-color: var(--secondary); }
+    .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <i class="fas fa-building fa-lg"></i>
+      <h2 style="margin: 0; font-size: 20px;"><%= place.nombre %></h2>
+    </div>
+    <div class="header-user">
+      <span>Hola, <strong><%= currentUser.nombre %></strong></span>
+      <a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Salir</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar-menu">
+      <button class="nav-tab active" onclick="switchTab('tab-perfil', this)"><i class="fas fa-id-card"></i> Perfil</button>
+      <button class="nav-tab" onclick="switchTab('tab-eventos', this)"><i class="fas fa-calendar-alt"></i> Eventos</button>
+      <button class="nav-tab" onclick="switchTab('tab-mensajes', this)"><i class="fas fa-envelope"></i> Mensajes</button>
+    </aside>
+
+    <main>
+      <!-- ================= 1. TAB PERFIL ================= -->
+      <section id="tab-perfil" class="tab-content active">
+        <form action="/panel/place/update" method="POST" onsubmit="prepararFormularioGuardado()">
+          
+          <!-- BLOQUE 1: INFORMACIÓN BÁSICA Y UBICACIÓN MAPS -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-info-circle"></i> Información Básica y Geolocalización</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombre Comercial</label>
+                <input type="text" name="nombre" value="<%= place.nombre %>" required>
+              </div>
+              <div class="form-group">
+                <label>Subdominio (Fanpage)</label>
+                <input type="text" value="<%= place.subdomain %>.toc.ar" disabled style="color: #38bdf8;">
+              </div>
+
+              <!-- UBICACIÓN FÍSICA -->
+              <div class="form-group full">
+                <label><i class="fas fa-map-marker-alt" style="color: #e75b37;"></i> Ubicación / Dirección Física</label>
+                <input type="text" id="direccionInput" name="direccionTexto" value="<%= place.direccionTexto || '' %>" placeholder="Escribe la calle y número (ej: San Martín 450, General Roca)..." required>
+                <input type="hidden" id="placeLat" name="placeLat" value="<%= place.location?.coordinates?.[1] || '' %>">
+                <input type="hidden" id="placeLng" name="placeLng" value="<%= place.location?.coordinates?.[0] || '' %>">
+              </div>
+
+              <!-- DÍAS Y HORARIOS ESTRUCTURADOS -->
+              <div class="form-group full">
+                <label><i class="far fa-clock"></i> Días de Atención</label>
+                <div class="days-container">
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Lun"> Lunes</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Mar"> Martes</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Mié"> Miércoles</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Jue"> Jueves</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Vie"> Viernes</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Sáb"> Sábado</label>
+                  <label class="day-checkbox"><input type="checkbox" class="chk-dia" value="Dom"> Domingo</label>
+                </div>
+
+                <div class="hours-grid">
+                  <div>
+                    <label>Hora de Apertura (Desde)</label>
+                    <select id="horaDesdeSelect">
+                      <% for(let h = 0; h < 24; h++) { %>
+                        <% let hStr = (h < 10 ? '0' : '') + h + ':00'; %>
+                        <option value="<%= hStr %>"><%= hStr %> hs</option>
+                        <% let hHalfStr = (h < 10 ? '0' : '') + h + ':30'; %>
+                        <option value="<%= hHalfStr %>"><%= hHalfStr %> hs</option>
+                      <% } %>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Hora de Cierre (Hasta)</label>
+                    <select id="horaHastaSelect">
+                      <% for(let h = 0; h < 24; h++) { %>
+                        <% let hStr = (h < 10 ? '0' : '') + h + ':00'; %>
+                        <option value="<%= hStr %>"><%= hStr %> hs</option>
+                        <% let hHalfStr = (h < 10 ? '0' : '') + h + ':30'; %>
+                        <option value="<%= hHalfStr %>"><%= hHalfStr %> hs</option>
+                      <% } %>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Campo oculto consolidado que viaja al servidor -->
+                <input type="hidden" name="diasHorarios" id="diasHorariosFinal" value="<%= place.diasHorarios || '' %>">
+              </div>
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: TRES NIVELES DE CATEGORIZACIÓN (SELECTORES EN CASCADA) -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-sitemap"></i> Clasificación y Categorización del Espacio</h3>
+            
+            <div class="form-group">
+              <label>1. Categoría Principal (Tipo Macro)</label>
+              <select name="tipoMacro" id="tipoMacroSelect" onchange="onTipoMacroChange()" required>
+                <option value="">-- Seleccionar Categoría --</option>
+                <option value="Gastronomía, Ocio y Vida Nocturna" <%= place.tipoMacro === 'Gastronomía, Ocio y Vida Nocturna' ? 'selected' : '' %>>Gastronomía, Ocio y Vida Nocturna</option>
+                <option value="Espacios Culturales y de Artes Escénicas" <%= place.tipoMacro === 'Espacios Culturales y de Artes Escénicas' ? 'selected' : '' %>>Espacios Culturales y de Artes Escénicas</option>
+                <option value="Salones y Espacios de Eventos" <%= place.tipoMacro === 'Salones y Espacios de Eventos' ? 'selected' : '' %>>Salones y Espacios de Eventos</option>
+                <option value="Recintos Deportivos y de Grandes Convocatorias" <%= place.tipoMacro === 'Recintos Deportivos y de Grandes Convocatorias' ? 'selected' : '' %>>Recintos Deportivos y de Grandes Convocatorias</option>
+                <option value="Espacios Públicos y Alternativos" <%= place.tipoMacro === 'Espacios Públicos y Alternativos' ? 'selected' : '' %>>Espacios Públicos y Alternativos</option>
+              </select>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>2. Subcategoría</label>
+                <select name="subcategoria" id="subcategoriaSelect" onchange="onSubcategoriaChange()" required>
+                  <option value="">-- Seleccionar Subcategoría --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>3. Tipo Específico de Establecimiento</label>
+                <select name="tipoEspecifico" id="tipoEspecificoSelect" required>
+                  <option value="">-- Seleccionar Tipo Específico --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- BLOQUE 3: CAPACIDADES FÍSICAS REALES -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-users"></i> Capacidades Físicas Reales</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Espectadores Mínimos</label>
+                <input type="number" name="espectadoresMin" value="<%= place.capacidad?.espectadoresMin || 0 %>">
+              </div>
+              <div class="form-group">
+                <label>Espectadores Máximos (Aforo Total)</label>
+                <input type="number" name="espectadoresMax" value="<%= place.capacidad?.espectadoresMax || 100 %>" required>
+              </div>
+              <div class="form-group">
+                <label>¿Asientos Numerados?</label>
+                <select name="asientosNumerados">
+                  <option value="false" <%= !place.capacidad?.asientosNumerados ? 'selected' : '' %>>NO</option>
+                  <option value="true" <%= place.capacidad?.asientosNumerados ? 'selected' : '' %>>SÍ</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>¿Reserva de Mesas?</label>
+                <select name="reservaMesas">
+                  <option value="false" <%= !place.capacidad?.reservaMesas ? 'selected' : '' %>>NO</option>
+                  <option value="true" <%= place.capacidad?.reservaMesas ? 'selected' : '' %>>SÍ</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label>Estacionamiento Propio</label>
+                <select name="estacionamientoPropio">
+                  <option value="NO" <%= place.capacidad?.estacionamientoPropio === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.capacidad?.estacionamientoPropio === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.capacidad?.estacionamientoPropio === 'Opcional' ? 'selected' : '' %>>Opcional / Cercano</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- BLOQUE 4: INFRAESTRUCTURA TÉCNICA INSTALADA -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-tools"></i> Infraestructura Técnica Instalada</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Escenario</label>
+                <select name="escenario">
+                  <option value="NO" <%= place.infraestructuraTecnica?.escenario === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.escenario === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.escenario === 'Opcional' ? 'selected' : '' %>>Opcional / Desmontable</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Sistema de Sonido (PA)</label>
+                <select name="sonido">
+                  <option value="NO" <%= place.infraestructuraTecnica?.sonido === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.sonido === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.sonido === 'Opcional' ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Iluminación</label>
+                <select name="iluminacion">
+                  <option value="NO" <%= place.infraestructuraTecnica?.iluminacion === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.iluminacion === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.iluminacion === 'Opcional' ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Backline (Batería / Amplificadores)</label>
+                <select name="backline">
+                  <option value="NO" <%= place.infraestructuraTecnica?.backline === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.backline === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.backline === 'Opcional' ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Venta de Comida</label>
+                <select name="ventaComida">
+                  <option value="NO" <%= place.infraestructuraTecnica?.ventaComida === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.ventaComida === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.ventaComida === 'Opcional' ? 'selected' : '' %>>Opcional / Foodtrucks</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Venta de Bebidas / Barra</label>
+                <select name="ventaBebidas">
+                  <option value="NO" <%= place.infraestructuraTecnica?.ventaBebidas === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="SI" <%= place.infraestructuraTecnica?.ventaBebidas === 'SI' ? 'selected' : '' %>>SÍ</option>
+                  <option value="Opcional" <%= place.infraestructuraTecnica?.ventaBebidas === 'Opcional' ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- BLOQUE 5: REDES SOCIALES COMPLETAS -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-hashtag"></i> Redes Sociales y Contacto</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fab fa-instagram"></i> Instagram</label>
+                <input type="text" name="instagram" value="<%= place.redesSociales?.instagram || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-facebook"></i> Facebook</label>
+                <input type="text" name="facebook" value="<%= place.redesSociales?.facebook || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-tiktok"></i> TikTok</label>
+                <input type="text" name="tikTok" value="<%= place.redesSociales?.tikTok || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-youtube"></i> YouTube</label>
+                <input type="text" name="youtube" value="<%= place.redesSociales?.youtube || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-soundcloud"></i> SoundCloud</label>
+                <input type="text" name="soundCloud" value="<%= place.redesSociales?.soundCloud || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-bandcamp"></i> Bandcamp</label>
+                <input type="text" name="bandcamp" value="<%= place.redesSociales?.bandcamp || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-whatsapp"></i> WhatsApp Reservas</label>
+                <input type="text" name="whatsapp" value="<%= place.redesSociales?.whatsapp || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="far fa-envelope"></i> Email Institucional</label>
+                <input type="email" name="email" value="<%= place.redesSociales?.email || '' %>">
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-action"><i class="fas fa-save"></i> Guardar Cambios del Perfil</button>
+        </form>
+      </section>
+
+      <!-- ================= 2. TAB EVENTOS ================= -->
+      <section id="tab-eventos" class="tab-content">
+        <div style="margin-bottom: 25px;">
+          <a href="/events/new" class="btn-action btn-green">
+            <i class="fas fa-plus-circle"></i> Crear Nuevo Evento
+          </a>
+        </div>
+
+        <div class="card-panel">
+          <h3 class="section-header"><i class="fas fa-calendar-check"></i> Agenda del Local</h3>
+          <% if (!misEventos || misEventos.length === 0) { %>
+            <p style="color: var(--subtext); font-style: italic;">No hay eventos programados en este momento.</p>
+          <% } else { %>
+            <% misEventos.forEach(ev => { %>
+              <div class="event-item">
+                <div class="event-info">
+                  <h4><%= ev.nombre %></h4>
+                  <p><i class="fas fa-users"></i> Artistas: <%= ev.artistas?.map(a => a.artistaId?.nombre).join(', ') || 'Sin artistas' %></p>
+                  <p><i class="far fa-clock"></i> <%= new Date(ev.fechaInicio).toLocaleString('es-AR') %> hs</p>
+                </div>
+                <div>
+                  <a href="https://api.whatsapp.com/send?text=¡Próximo show en <%= place.nombre %>! http://quienva.toc.ar/<%= ev.codigoUrl %>" target="_blank" class="btn-action" style="background:#25D366; padding: 6px 12px; font-size: 12px;">
+                    <i class="fab fa-whatsapp"></i> Compartir
+                  </a>
+                </div>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- ================= 3. TAB MENSAJES ================= -->
+      <section id="tab-mensajes" class="tab-content">
+        <div class="card-panel">
+          <h3 class="section-header"><i class="fas fa-comments"></i> Bandeja de Entrada</h3>
+          <% if (!currentUser.mensajes || currentUser.mensajes.length === 0) { %>
+            <p style="color: var(--subtext); font-style: italic;">No tienes mensajes recibidos.</p>
+          <% } else { %>
+            <% currentUser.mensajes.forEach(m => { %>
+              <div class="event-item" style="flex-direction: column; align-items: flex-start;">
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                  <strong style="color: #38bdf8;"><%= m.remitenteNombre %></strong>
+                  <small style="color: var(--subtext);"><%= new Date(m.fecha).toLocaleDateString('es-AR') %></small>
+                </div>
+                <div style="font-weight: bold; margin-top: 5px;"><%= m.asunto %></div>
+                <p style="margin: 5px 0 0 0; color: var(--subtext); font-size: 14px;"><%= m.contenido %></p>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 🌳 ÁRBOL COMPLETO DE CATEGORIZACIÓN
+    const arbolCategorias = {
+      'Gastronomía, Ocio y Vida Nocturna': {
+        'Bar / Pub': [
+          'Bar de Música en Vivo (Live Music Bar)',
+          'Pub Irlandés / Tradicional',
+          'Bar de Eventos / Multiespacio',
+          'Cervecería Artesanal'
+        ],
+        'Restorán / Resto-Bar': [
+          'Restorán con Show (Dinner Show)',
+          'Peña Folclórica / Cultural'
+        ],
+        'Club Nocturno / Discoteca': [
+          'Boliche / Club de Baile',
+          'Clandestino / Club Underground'
+        ]
+      },
+      'Espacios Culturales y de Artes Escénicas': {
+        'Teatros y Auditorios': [
+          'Teatro Ópera / Tradicional',
+          'Teatro Independiente / Sala "Caja Negra" (Black Box)',
+          'Auditorio / Sala de Conciertos'
+        ],
+        'Centros Culturales': [
+          'Centro Cultural Público / Municipal',
+          'Centro Cultural Independiente / Club Social'
+        ],
+        'Galerías y Museos': [
+          'Galería de Arte / Atelier',
+          'Museo'
+        ]
+      },
+      'Salones y Espacios de Eventos': {
+        'Salones Cerrados': [
+          'Salón de Fiestas / Eventos Sociales',
+          'Salón de Hotel (Ballroom)'
+        ],
+        'Espacios Semi-Abiertos y Fincas': [
+          'Quinta / Estancia / Finca',
+          'Multiespacio al Aire Libre / Patios Urbanos'
+        ]
+      },
+      'Recintos Deportivos y de Grandes Convocatorias': {
+        'Estadios y Arenas': [
+          'Estadio Abierto (Cancha de Fútbol/Rugby)',
+          'Estadio Cubierto / Arena'
+        ],
+        'Polideportivos y Clubes de Barrio': [
+          'Gimnasio / Polideportivo Municipal'
+        ],
+        'Predios Feriales y Autódromos': [
+          'Centro de Exposiciones / Predio Ferial',
+          'Autódromo / Predio de Campo Abierto'
+        ]
+      },
+      'Espacios Públicos y Alternativos': {
+        'Espacio Público Urbano': [
+          'Plazas / Parques / Anfiteatros Públicos',
+          'Calles Peatonales / Paseos'
+        ],
+        'Espacios Industriales / Pop-Up': [
+          'Fábricas / Galpones Abandonados'
+        ]
+      }
+    };
+
+    const valSubcatGuardada = '<%= place.subcategoria || "" %>';
+    const valTipoEspecificoGuardado = '<%= place.tipoEspecifico || "" %>';
+
+    function onTipoMacroChange(isInitialLoad = false) {
+      const tipoMacroVal = document.getElementById('tipoMacroSelect').value;
+      const subcatSelect = document.getElementById('subcategoriaSelect');
+      const tipoEspSelect = document.getElementById('tipoEspecificoSelect');
+
+      subcatSelect.innerHTML = '<option value="">-- Seleccionar Subcategoría --</option>';
+      tipoEspSelect.innerHTML = '<option value="">-- Seleccionar Tipo Específico --</option>';
+
+      if (tipoMacroVal && arbolCategorias[tipoMacroVal]) {
+        Object.keys(arbolCategorias[tipoMacroVal]).forEach(subcat => {
+          const opt = document.createElement('option');
+          opt.value = subcat;
+          opt.innerText = subcat;
+          if (isInitialLoad && subcat === valSubcatGuardada) {
+            opt.selected = true;
+          }
+          subcatSelect.appendChild(opt);
+        });
+        
+        onSubcategoriaChange(isInitialLoad);
+      }
+    }
+
+    function onSubcategoriaChange(isInitialLoad = false) {
+      const tipoMacroVal = document.getElementById('tipoMacroSelect').value;
+      const subcatVal = document.getElementById('subcategoriaSelect').value;
+      const tipoEspSelect = document.getElementById('tipoEspecificoSelect');
+
+      tipoEspSelect.innerHTML = '<option value="">-- Seleccionar Tipo Específico --</option>';
+
+      if (tipoMacroVal && subcatVal && arbolCategorias[tipoMacroVal][subcatVal]) {
+        arbolCategorias[tipoMacroVal][subcatVal].forEach(especifico => {
+          const opt = document.createElement('option');
+          opt.value = especifico;
+          opt.innerText = especifico;
+          if (isInitialLoad && especifico === valTipoEspecificoGuardado) {
+            opt.selected = true;
+          }
+          tipoEspSelect.appendChild(opt);
+        });
+      }
+    }
+
+   // Inicialización optimizada de Google Maps Autocomplete
+function initMaps() {
+  const input = document.getElementById('direccionInput');
+  if (!input) return;
+
+  // 1. Si no hay clave configurada o la librería de Google no cargó correctamente, no se vincula el autocomplete
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+    console.warn('⚡ Google Maps API no configurada o sin API Key. Modo de dirección manual activo.');
+    return;
+  }
+
+  try {
+    // 2. Inicializamos Autocomplete restringido a Argentina
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+      types: ['address'],
+      componentRestrictions: { country: 'ar' },
+      fields: ['geometry', 'formatted_address']
+    });
+
+    // 3. SESGO DE GEOLOCALIZACIÓN DEL USUARIO (Prioriza el Alto Valle / Zona Cercana)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        // Crear un círculo de sesgo de 50 km alrededor del usuario
+        const circle = new google.maps.Circle({
+          center: { lat: userLat, lng: userLng },
+          radius: 50000 // 50 km
+        });
+        autocomplete.setBounds(circle.getBounds());
+      }, () => {
+        // Fallback si el usuario no otorga GPS: Sesgar a las coordenadas actuales del establecimiento
+        const currentLat = parseFloat(document.getElementById('placeLat').value);
+        const currentLng = parseFloat(document.getElementById('placeLng').value);
+        if (!isNaN(currentLat) && !isNaN(currentLng)) {
+          const circle = new google.maps.Circle({
+            center: { lat: currentLat, lng: currentLng },
+            radius: 50000
+          });
+          autocomplete.setBounds(circle.getBounds());
+        }
+      });
+    }
+
+    // 4. REGLA DE MÍNIMO 5 CARACTERES
+    // Prevenimos que el desplegable emergente de Google aparezca antes de tipear 5 letras
+    input.addEventListener('input', (e) => {
+      const texto = e.target.value.trim();
+      const pacContainers = document.querySelectorAll('.pac-container');
+
+      if (texto.length < 5) {
+        // Ocultar la caja desplegable de sugerencias de Google
+        pacContainers.forEach(container => {
+          container.style.display = 'none';
+        });
+      } else {
+        pacContainers.forEach(container => {
+          container.style.display = 'block';
+        });
+      }
+    });
+
+    // Evento al seleccionar una dirección válida
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry && place.geometry.location) {
+        document.getElementById('placeLat').value = place.geometry.location.lat();
+        document.getElementById('placeLng').value = place.geometry.location.lng();
+      }
+    });
+
+  } catch (e) {
+    console.warn('Error iniciando Autocomplete de Google Maps:', e);
+  }
+}
+
+    // Carga de Días y Horarios existentes en la UI
+    function cargarDiasHorariosUI() {
+      const stringGuardado = '<%= place.diasHorarios || "" %>';
+      if (!stringGuardado) return;
+
+      const chks = document.querySelectorAll('.chk-dia');
+      chks.forEach(chk => {
+        if (stringGuardado.includes(chk.value)) {
+          chk.checked = true;
+        }
+      });
+
+      const matchHoras = stringGuardado.match(/de\s+([\d:]+)\s+a\s+([\d:]+)/i);
+      if (matchHoras) {
+        const horaDesde = matchHoras[1];
+        const horaHasta = matchHoras[2];
+
+        const selDesde = document.getElementById('horaDesdeSelect');
+        const selHasta = document.getElementById('horaHastaSelect');
+
+        if (selDesde) selDesde.value = horaDesde;
+        if (selHasta) selHasta.value = horaHasta;
+      }
+    }
+
+    // Consolidación de Días y Horarios antes de enviar el formulario
+    function prepararFormularioGuardado() {
+      const seleccionados = [];
+      document.querySelectorAll('.chk-dia:checked').forEach(chk => {
+        seleccionados.push(chk.value);
+      });
+
+      const horaDesde = document.getElementById('horaDesdeSelect').value;
+      const horaHasta = document.getElementById('horaHastaSelect').value;
+
+      let resultadoFinal = '';
+      if (seleccionados.length > 0) {
+        resultadoFinal = `${seleccionados.join(', ')} de ${horaDesde} a ${horaHasta} hs`;
+      } else {
+        resultadoFinal = `Todos los días de ${horaDesde} a ${horaHasta} hs`;
+      }
+
+      document.getElementById('diasHorariosFinal').value = resultadoFinal;
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    window.addEventListener('load', () => {
+      onTipoMacroChange(true);
+      cargarDiasHorariosUI();
+      initMaps();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+const Event = require('../models/Event');
+const Artist = require('../models/Artist');
+const Place = require('../models/Place');
+const crypto = require('crypto');
+
+function generarCodigoCorto() {
+  return crypto.randomBytes(3).toString('hex');
+}
+
+exports.renderCreateEvent = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.redirect('/auth/login');
+
+    let defaultArtist = null;
+    let defaultPlace = null;
+
+    if (user.role === 'Artista' && user.artistProfile) {
+      defaultArtist = await Artist.findById(user.artistProfile);
+    } else if (user.role === 'Establecimiento' && user.placeProfile) {
+      defaultPlace = await Place.findById(user.placeProfile);
+    }
+
+    res.render('event', {
+      user,
+      defaultArtist,
+      defaultPlace
+    });
+  } catch (error) {
+    console.error('Error cargando formulario de evento:', error);
+    res.status(500).send('Error interno del servidor');
+  }
+};
+
+exports.searchArtists = async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    if (!q || q.length < 2) return res.json([]);
+    const artistas = await Artist.find({ nombre: { $regex: q, $options: 'i' } })
+      .select('_id nombre avatar subdomain').limit(10);
+    res.json(artistas);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.searchPlaces = async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    if (!q || q.length < 2) return res.json([]);
+    const lugares = await Place.find({ nombre: { $regex: q, $options: 'i' } })
+      .select('_id nombre subdomain location').limit(10);
+    res.json(lugares);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.createEvent = async (req, res) => {
+  try {
+    const user = req.user;
+    const { 
+      nombre, fecha, hora, artistasIds, 
+      establecimientoId, direccionManual, manualLat, manualLng,
+      tipoEntrada, linkExterno, precioEntrada, preventaHabilitada, fechaInicioPreventa 
+    } = req.body;
+
+    const [horas, minutos] = (hora || '21:00').split(':');
+    const fechaHoraInicio = new Date(fecha);
+    fechaHoraInicio.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+
+    let idsProcesados = Array.isArray(artistasIds) ? artistasIds : (artistasIds ? [artistasIds] : []);
+    
+    // Si el creador es Artista, se incluye obligatoriamente
+    if (user.role === 'Artista' && user.artistProfile) {
+      const artIdStr = user.artistProfile.toString();
+      if (!idsProcesados.includes(artIdStr)) {
+        idsProcesados.unshift(artIdStr);
+      }
+    }
+
+    // El creador queda ACEPTADO por defecto; los invitados quedan PENDIENTES
+    const artistasOrdenados = idsProcesados.map((id, index) => {
+      const esElCreador = (user.role === 'Artista' && user.artistProfile && user.artistProfile.toString() === id);
+      return {
+        artistaId: id,
+        orden: index,
+        estadoInvitacion: esElCreador ? 'Aceptado' : 'Pendiente'
+      };
+    });
+
+    let coords = [0, 0];
+    let estadoLugar = 'NoAplica';
+
+    if (establecimientoId) {
+      const placeDoc = await Place.findById(establecimientoId);
+      if (placeDoc && placeDoc.location) {
+        coords = placeDoc.location.coordinates;
+      }
+      // Si el creador es el mismo establecimiento, queda Aceptado; si es un Artista creando en su local, queda Pendiente
+      estadoLugar = (user.role === 'Establecimiento' && user.placeProfile && user.placeProfile.toString() === establecimientoId) 
+        ? 'Aceptado' 
+        : 'Pendiente';
+    } else if (manualLat && manualLng) {
+      coords = [parseFloat(manualLng), parseFloat(manualLat)];
+    }
+
+    // 🖼️ DETERMINAR FLYER O FALLBACK AUTOMÁTICO AL LOGO DEL CREADOR
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    } else {
+      if (user.role === 'Artista' && user.artistProfile) {
+        const artist = await Artist.findById(user.artistProfile);
+        imageUrl = artist?.avatar || artist?.logo || 'https://placehold.co/600x400?text=Evento+toc.ar';
+      } else if (user.role === 'Establecimiento' && user.placeProfile) {
+        const place = await Place.findById(user.placeProfile);
+        imageUrl = place?.logo || 'https://placehold.co/600x400?text=Evento+toc.ar';
+      } else {
+        imageUrl = 'https://placehold.co/600x400?text=Evento+toc.ar';
+      }
+    }
+
+    // Verificar si el evento nace 100% aceptado (solo si no hay invitados adicionales)
+    const hayArtistasPendientes = artistasOrdenados.some(a => a.estadoInvitacion === 'Pendiente');
+    const hayLugarPendiente = (estadoLugar === 'Pendiente');
+    const estadoGeneral = (!hayArtistasPendientes && !hayLugarPendiente) ? 'Publicado' : 'Pendiente';
+
+    let codigoUrl = generarCodigoCorto();
+    while (await Event.findOne({ codigoUrl })) {
+      codigoUrl = generarCodigoCorto();
+    }
+
+    const nuevoEvento = new Event({
+      nombre,
+      codigoUrl,
+      imageUrl, // Guarda la imagen subida o el logo/avatar automático
+      creatorUser: user._id,
+      creatorRole: user.role,
+      estadoGeneral,
+      fechaInicio: fechaHoraInicio,
+      artistas: artistasOrdenados,
+      establecimiento: establecimientoId || null,
+      estadoInvitacionLugar: estadoLugar,
+      direccionManual: !establecimientoId ? direccionManual : null,
+      location: { type: 'Point', coordinates: coords },
+      tipoEntrada,
+      linkExterno: tipoEntrada === 'Link Externo' ? linkExterno : null,
+      precioEntrada: tipoEntrada === 'Compra Online' ? (parseFloat(precioEntrada) || 0) : 0,
+      preventaHabilitada: tipoEntrada === 'Compra Online' ? (preventaHabilitada === 'true' || preventaHabilitada === true) : true,
+      fechaInicioPreventa: (tipoEntrada === 'Compra Online' && preventaHabilitada === 'false' && fechaInicioPreventa) ? new Date(fechaInicioPreventa) : null
+    });
+
+    await nuevoEvento.save();
+    res.redirect('/panel');
+  } catch (error) {
+    console.error('Error creando evento:', error);
+    res.status(500).send('Error interno al procesar el evento');
+  }
+};

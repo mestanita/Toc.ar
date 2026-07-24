@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= artist.nombre || artist.name %> | toc.ar</title>
+  
+  <!-- FontAwesome para los íconos de redes, ubicaciones y menú -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Carga dinámica de la tipografía seleccionada desde Google Fonts -->
+  <% const fuenteFamilia = artist.theme?.fontFamily || 'Roboto'; %>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=<%= fuenteFamilia.replace(/ /g, '+') %>&display=swap">
+
+  <style>
+    /* Inyección de la paleta de colores y fuente seleccionadas en el Panel */
+    :root {
+      --primary-color: <%= artist.theme?.primaryColor || artist.theme?.accentColor || '#0d4b75' %>; 
+      --secondary-color: <%= artist.theme?.secondaryColor || artist.theme?.accentColor || '#e75b37' %>; 
+      --background-color: <%= artist.theme?.backgroundColor || '#f8f9fa' %>; 
+      --text-color: <%= artist.theme?.textColor || '#212529' %>;
+      --card-border-color: #a8e0d4; /* Color aguamarina de la agenda original */
+      --font-family: '<%= fuenteFamilia %>', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--background-color) !important;
+      color: var(--text-color) !important;
+      font-family: var(--font-family) !important;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 10px;
+    }
+
+    /* Contenedor maqueta con borde fino gris oscuro */
+    .mockup-container {
+      width: 100%;
+      max-width: 1100px;
+      background-color: #ffffff;
+      border-radius: 16px; 
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+      border: 1px solid #4a5568;
+      position: relative; /* Clave para posicionamiento del logo */
+    }
+
+    /* HEADER */
+    .main-header {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 75px; /* Altura fija para calcular la mitad del logo */
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    /* LOGO SOLAPADO (Mitad sobre el header y mitad sobre el banner) */
+    .header-logo {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #cbd5e0;
+      position: absolute;
+      top: 20px;
+      left: 40px;
+      z-index: 10;
+      background-color: #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .header-title-container {
+      margin-left: 130px; /* Espacio para no tapar con el logo */
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .btn-share-header {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .header-socials {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .header-socials a {
+      color: #ffffff;
+      font-size: 1.3rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .header-socials a:hover {
+      opacity: 0.8;
+    }
+
+    /* HERO BANNER */
+    .hero-banner {
+      width: 100%;
+      height: 250px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-banner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* CONTENIDO PRINCIPAL */
+    .content-body {
+      padding: 30px 40px;
+      color: #212529;
+    }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+      color: #000000;
+    }
+
+    /* SECCIÓN AGENDA */
+    .agenda-container {
+      margin-bottom: 40px;
+    }
+
+    .event-card {
+      border: 2.5px solid var(--card-border-color);
+      border-radius: 12px;
+      background-color: #ffffff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      gap: 15px;
+    }
+
+    .event-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .event-flyer {
+      width: 100px;
+      height: 60px;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+
+    .event-info-grid {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .info-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-label {
+      font-size: 0.85rem;
+      color: #555;
+      font-weight: bold;
+    }
+
+    .info-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    .venue-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .venue-value i {
+      color: var(--secondary-color);
+    }
+
+    .event-socials {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .event-socials a {
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .event-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-action {
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      text-decoration: none;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      min-width: 180px;
+    }
+
+    .btn-buy {
+      background-color: var(--secondary-color);
+      color: #ffffff;
+    }
+
+    .btn-free-ticket {
+      background-color: var(--primary-color);
+      color: #ffffff;
+    }
+
+    .btn-share-event {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .btn-ver-todas {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 10px 30px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: block;
+      margin: 25px auto 0 auto;
+      text-transform: uppercase;
+    }
+
+    /* SECCIÓN NOSOTROS */
+    .about-container {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 40px;
+      margin-bottom: 50px;
+      align-items: start;
+    }
+
+    .about-left-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .band-big-logo {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+    }
+
+    .about-right-info h3 {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: var(--secondary-color);
+    }
+
+    .band-bio {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #333;
+      text-align: justify;
+      margin-bottom: 25px;
+    }
+
+    /* ELENCO */
+    .cast-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .cast-card {
+      text-align: center;
+    }
+
+    .cast-avatar-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 10px auto;
+    }
+
+    .cast-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--secondary-color);
+    }
+
+    .cast-name {
+      font-weight: bold;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+    }
+
+    .cast-role {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .resto-elenco {
+      border-top: 1px solid #e0e0e0;
+      padding-top: 15px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .resto-title {
+      font-weight: bold;
+    }
+
+    /* SECCIÓN RESEÑAS */
+    .reviews-section {
+      margin-bottom: 30px;
+    }
+
+    .rating-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .stars-indicator {
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .rating-score {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .review-card {
+      border: 1px solid #cbd5e0;
+      border-radius: 12px;
+      padding: 15px;
+      background-color: #ffffff;
+    }
+
+    .review-author {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .review-stars {
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .review-comment {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: #444;
+    }
+
+    /* FOOTER */
+    .main-footer {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .footer-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .footer-socials {
+      display: flex;
+      gap: 15px;
+    }
+
+    .footer-socials a {
+      color: #ffffff;
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+      .event-card { flex-direction: column; align-items: stretch; }
+      .event-info-grid { flex-direction: column; gap: 15px; align-items: flex-start; }
+      .about-container { grid-template-columns: 1fr; justify-items: center; }
+      .about-right-info, .band-bio { text-align: center; }
+      .header-logo { width: 80px; height: 80px; left: 20px; top: 35px; }
+      .header-title-container { margin-left: 90px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mockup-container">
+    
+    <!-- HEADER -->
+    <header class="main-header">
+      <div class="header-left">
+        <!-- LOGO (Prioriza el avatar/logo subido desde el panel) -->
+        <img src="<%= artist.avatar || artist.logo || 'https://placehold.co/150x150?text=Logo' %>" class="header-logo" alt="Logo de <%= artist.nombre || artist.name %>">
+        
+        <div class="header-title-container">
+          <span class="header-title"><%= artist.nombre || artist.name %></span>
+          <button class="btn-share-header" title="Compartir"><i class="fa-solid fa-share-nodes"></i></button>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <!-- REDES SOCIALES EN CABECERA -->
+        <div class="header-socials">
+          <% if (artist.redesSociales?.instagram) { %>
+            <a href="<%= artist.redesSociales.instagram %>" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+          <% } %>
+          <% if (artist.redesSociales?.facebook) { %>
+            <a href="<%= artist.redesSociales.facebook %>" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+          <% } %>
+          <% if (artist.redesSociales?.whatsapp) { %>
+            <a href="https://wa.me/<%= artist.redesSociales.whatsapp %>" target="_blank"><i class="fa-brands fa-whatsapp"></i></a>
+          <% } %>
+          <% if (artist.redesSociales?.email) { %>
+            <a href="mailto:<%= artist.redesSociales.email %>"><i class="fa-regular fa-envelope"></i></a>
+          <% } %>
+        </div>
+
+        <%- include('partials/auth-header') %>
+      </div>
+    </header>
+
+    <!-- BANNER HERO -->
+    <section class="hero-banner">
+      <img src="<%= artist.banner || 'https://placehold.co/1200x400?text=Banner+del+Artista' %>" alt="Banner de <%= artist.nombre || artist.name %>">
+    </section>
+
+    <!-- CUERPO DE CONTENIDO -->
+    <div class="content-body">
+      
+      <!-- SECCIÓN AGENDA -->
+      <section class="agenda-container">
+        <h2 class="section-title">Agenda</h2>
+        
+        <% if (!upcomingEvents || upcomingEvents.length === 0) { %>
+          <p style="font-style: italic; color: #777;">No hay próximos eventos agendados en este momento.</p>
+        <% } else { %>
+          <% upcomingEvents.forEach(event => { %>
+            <div class="event-card">
+              <div class="event-left">
+                <img src="<%= event.imageUrl || '/images/event-placeholder.jpg' %>" class="event-flyer" alt="Flyer">
+                
+                <div class="event-info-grid">
+                  <div class="info-group">
+                    <span class="info-label">Fecha:</span>
+                    <span class="info-value"><%= new Date(event.fechaInicio || event.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) %></span>
+                  </div>
+                  
+                  <div class="info-group">
+                    <span class="info-value venue-value">
+                      <%= event.establecimiento?.nombre || event.direccionManual || event.venue || 'Lugar a confirmar' %> 
+                      <% if (event.locationUrl) { %>
+                        <a href="<%= event.locationUrl %>" target="_blank" title="Cómo llegar"><i class="fa-solid fa-location-dot"></i></a>
+                      <% } else { %>
+                        <i class="fa-solid fa-location-dot"></i>
+                      <% } %>
+                    </span>
+                    
+                    <div class="event-socials">
+                      <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                      <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                      <a href="#"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="event-right">
+                <% if (event.tipoEntrada === 'Compra Online' || event.modality === 'Comprar aquí') { %>
+                  <a href="/comprar/<%= event._id %>" class="btn-action btn-buy">Comprá tu entrada</a>
+                <% } else if (event.tipoEntrada === 'Link Externo' || event.modality === 'Comprar en') { %>
+                  <a href="<%= event.linkExterno || event.externalTicketUrl %>" target="_blank" class="btn-action btn-buy">Comprá tu entrada</a>
+                <% } else { %>
+                  <button class="btn-action btn-free-ticket">Entrada gratis</button>
+                <% } %>
+                
+                <button class="btn-share-event" title="Compartir fecha"><i class="fa-solid fa-share-nodes"></i></button>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+
+        <button class="btn-ver-todas">Ver todas</button>
+      </section>
+
+      <!-- SECCIÓN NOSOTROS -->
+      <section class="about-container">
+        <div class="about-left-logo">
+          <img src="<%= artist.avatar || artist.logo || 'https://placehold.co/180x180?text=Logo' %>" class="band-big-logo" alt="Logo de la banda">
+        </div>
+        
+        <div class="about-right-info">
+          <h2 class="section-title">Nosotros</h2>
+          <h3><%= artist.categoria || 'Grupo Musical' %> <%= artist.subcategoria ? '• ' + artist.subcategoria : '' %></h3>
+          <p class="band-bio"><%= artist.reseña || artist.bio || 'Este artista aún no ha ingresado su biografía oficial.' %></p>
+
+          <!-- Elenco Principal con Foto -->
+          <% if (typeof featuredCast !== 'undefined' && featuredCast.length > 0) { %>
+            <div class="cast-grid">
+              <% featuredCast.forEach(member => { %>
+                <div class="cast-card">
+                  <div class="cast-avatar-wrapper">
+                    <img src="<%= member.foto || member.photo %>" class="cast-avatar" alt="<%= member.name %>">
+                  </div>
+                  <div class="cast-name"><%= member.name %></div>
+                  <div class="cast-role"><%= member.role %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <!-- Resto del Elenco (Sin Foto) -->
+          <% if (typeof generalCast !== 'undefined' && generalCast.length > 0) { %>
+            <div class="resto-elenco">
+              <span class="resto-title">Resto del elenco:</span>
+              <span>
+                <%= generalCast.map(member => `${member.name.toUpperCase()} (${member.role})`).join(', ') %>
+              </span>
+            </div>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- SECCIÓN RESEÑAS -->
+      <section class="reviews-section">
+        <h2 class="section-title">Reseñas</h2>
+        
+        <div class="rating-header">
+          <span class="stars-indicator">
+            <% const ratingPromedio = typeof averageRating !== 'undefined' ? averageRating : (artist.score || 5.0); %>
+            <% const fullStars = Math.floor(ratingPromedio); %>
+            <% for (let i = 1; i <= 5; i++) { %>
+              <% if (i <= fullStars) { %>
+                <i class="fa-solid fa-star"></i>
+              <% } else if (i - 0.5 <= ratingPromedio) { %>
+                <i class="fa-solid fa-star-half-stroke"></i>
+              <% } else { %>
+                <i class="fa-regular fa-star"></i>
+              <% } %>
+            <% } %>
+          </span>
+          <span class="rating-score"><%= ratingPromedio %></span>
+        </div>
+
+        <div class="reviews-grid">
+          <% if (typeof reviews !== 'undefined' && reviews.length > 0) { %>
+            <% reviews.forEach(review => { %>
+              <div class="review-card">
+                <div class="review-author"><%= review.reviewerName || 'Espectador' %></div>
+                <div class="review-stars">
+                  <% for (let i = 1; i <= 5; i++) { %>
+                    <% if (i <= (review.rating || review.estrellas)) { %>
+                      <i class="fa-solid fa-star"></i>
+                    <% } else { %>
+                      <i class="fa-regular fa-star"></i>
+                    <% } %>
+                  <% } %>
+                </div>
+                <p class="review-comment">"<%= review.comment || review.comentario %>"</p>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p style="grid-column: 1 / -1; font-style: italic; color: #777;">Aún no hay opiniones escritas de este artista.</p>
+          <% } %>
+        </div>
+
+        <button class="btn-ver-todas">Ver todas</button>
+      </section>
+
+    </div>
+
+    <!-- PIE DE PÁGINA (FOOTER) -->
+    <footer class="main-footer">
+      <div class="footer-brand">
+        <img src="/images/toc-ar-logo.png" class="footer-logo" alt="Logo de toc.ar" onerror="this.style.display='none'">
+        <span>Quienva.toc.ar</span>
+      </div>
+      <div class="footer-socials">
+        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="mailto:info@toc.ar"><i class="fa-regular fa-envelope"></i></a>
+        <a href="#"><i class="fa-brands fa-whatsapp"></i></a>
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

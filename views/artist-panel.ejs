@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Artista - <%= artist.nombre %> | toc.ar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Cropper.js CSS & JS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+  <!-- Google Fonts para Muestra -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat&family=Roboto&family=Open+Sans&family=Lato&family=Oswald&family=Raleway&family=Poppins&family=Merriweather&family=Playfair+Display&family=Bebas+Neue&family=Cinzel&family=Caveat&family=Pacifico&family=Abril+Fatface&family=Permanent+Marker&family=Lobster&family=Comfortaa&family=Fira+Code&family=Righteous&family=Satisfy&display=swap">
+
+  <style>
+    :root {
+      --primary: #0d4b75;
+      --secondary: #e75b37;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+      --border: #334155;
+    }
+
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+
+    header {
+      background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .header-user { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+    .header-user a { color: #fca5a5; text-decoration: none; font-weight: bold; }
+    
+    .btn-view-profile {
+      background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+      padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;
+      display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;
+    }
+    .btn-view-profile:hover { background: rgba(255,255,255,0.3); color: white; }
+
+    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 240px 1fr; gap: 30px; }
+    @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+
+    .sidebar-menu { background: var(--card-bg); border-radius: 10px; padding: 15px; height: fit-content; border: 1px solid var(--border); }
+    .nav-tab {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 15px; margin-bottom: 8px; border: none; background: transparent; color: var(--subtext); text-align: left; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: all 0.2s;
+    }
+    .nav-tab:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-tab.active { background: var(--primary); color: white; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card-panel { background: var(--card-bg); border-radius: 10px; padding: 25px; margin-bottom: 25px; border: 1px solid var(--border); }
+    .section-header { font-size: 18px; color: #38bdf8; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group.full { grid-column: span 2; }
+    label { display: block; font-size: 13px; font-weight: bold; color: var(--subtext); margin-bottom: 6px; }
+    input[type="text"], input[type="email"], select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: #0f172a; color: white; box-sizing: border-box; font-size: 14px; }
+
+    .btn-action { background: var(--secondary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; transition: background 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+    .btn-action:hover { background: #d04825; }
+
+    .paletas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 10px; }
+    .paleta-card {
+      border: 2px solid var(--border); border-radius: 8px; padding: 8px; cursor: pointer; text-align: center; transition: all 0.2s; background: #0f172a;
+    }
+    .paleta-card:hover { border-color: #38bdf8; }
+    .paleta-card.selected { border-color: #e75b37; box-shadow: 0 0 10px rgba(231, 91, 55, 0.5); }
+    .swatch-group { display: flex; height: 35px; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+    .swatch { flex: 1; height: 100%; }
+
+    .font-preview-box {
+      background: #0f172a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-top: 10px; font-size: 20px; color: #38bdf8; text-align: center;
+    }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
+    .modal-crop-box { background: var(--card-bg); padding: 20px; border-radius: 10px; max-width: 600px; width: 90%; }
+    .crop-container { width: 100%; max-height: 400px; background: #000; overflow: hidden; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <i class="fas fa-guitar fa-lg"></i>
+      <h2 style="margin: 0; font-size: 20px;"><%= artist.nombre %></h2>
+      
+      <!-- 👁️ BOTÓN PREVISUALIZAR PROFILE -->
+      <a href="http://<%= artist.subdomain %>.localhost:3000" target="_blank" class="btn-view-profile" title="Ver Fanpage Publicada">
+        <i class="fas fa-eye"></i> Ver Fanpage
+      </a>
+    </div>
+    <div class="header-user">
+      <span>Hola, <strong><%= currentUser.nombre %></strong></span>
+      <a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Salir</a>
+    </div>
+  </header>
+
+  <div class="container">
+    
+    <aside class="sidebar-menu">
+      <button class="nav-tab active" onclick="switchTab('tab-perfil', this)"><i class="fas fa-id-card"></i> Perfil</button>
+      <button class="nav-tab" onclick="switchTab('tab-fanpage', this)"><i class="fas fa-paint-brush"></i> Fan Page</button>
+      <button class="nav-tab" onclick="switchTab('tab-eventos', this)"><i class="fas fa-calendar-alt"></i> Eventos</button>
+      <button class="nav-tab" onclick="switchTab('tab-mensajes', this)"><i class="fas fa-envelope"></i> Mensajes</button>
+    </aside>
+
+    <main>
+      <form action="/panel/artist/update" method="POST" id="artistProfileForm">
+
+        <!-- ================= 1. TAB PERFIL ================= -->
+        <section id="tab-perfil" class="tab-content active">
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-info-circle"></i> Información Básica</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombre del Artista</label>
+                <input type="text" name="nombre" value="<%= artist.nombre %>" required>
+              </div>
+              <div class="form-group">
+                <label>Subdominio (Fanpage)</label>
+                <input type="text" value="<%= artist.subdomain %>.toc.ar" disabled style="color: #38bdf8;">
+              </div>
+              <div class="form-group full">
+                <label>Reseña / Biografía</label>
+                <textarea name="reseña" rows="4"><%= artist.reseña %></textarea>
+              </div>
+              <div class="form-group">
+                <label>Categoría</label>
+                <input type="text" name="categoria" value="<%= artist.categoria %>">
+              </div>
+              <div class="form-group">
+                <label>Subcategoría</label>
+                <input type="text" name="subcategoria" value="<%= artist.subcategoria %>">
+              </div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-hashtag"></i> Redes Sociales</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fab fa-instagram"></i> Instagram URL</label>
+                <input type="text" name="instagram" value="<%= artist.redesSociales?.instagram || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-facebook"></i> Facebook URL</label>
+                <input type="text" name="facebook" value="<%= artist.redesSociales?.facebook || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fab fa-whatsapp"></i> WhatsApp Contacto</label>
+                <input type="text" name="whatsapp" value="<%= artist.redesSociales?.whatsapp || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="far fa-envelope"></i> Email de Contacto</label>
+                <input type="email" name="email" value="<%= artist.redesSociales?.email || '' %>">
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-action"><i class="fas fa-save"></i> Guardar Cambios</button>
+        </section>
+
+        <!-- ================= 2. TAB FAN PAGE ================= -->
+        <section id="tab-fanpage" class="tab-content">
+          
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-image"></i> Identidad Visual (Logo y Banner)</h3>
+            
+            <div class="form-grid">
+              <!-- LOGO CON CROPPER 1:1 -->
+              <div class="form-group">
+                <label>Logo / Imagen de Perfil (Cuadrado 1:1)</label>
+                <input type="file" id="logoFileInput" accept="image/*" style="margin-bottom: 10px;">
+                <input type="hidden" name="logoCroppedData" id="logoCroppedData">
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <img id="logoPreview" src="<%= artist.avatar || artist.logo || 'https://placehold.co/150x150?text=Logo' %>" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 2px solid var(--border);">
+                  <small style="color: var(--subtext);">Selecciona una imagen para ajustar el área cuadrada.</small>
+                </div>
+              </div>
+
+              <!-- BANNER CON CROPPER 3:1 -->
+              <div class="form-group">
+                <label>Banner de Cabecera (Panorámico 3:1)</label>
+                <input type="file" id="bannerFileInput" accept="image/*" style="margin-bottom: 10px;">
+                <input type="hidden" name="bannerCroppedData" id="bannerCroppedData">
+                <small style="color: #38bdf8; display: block; margin-bottom: 8px;">
+                  * Formato panorámico ajustable. Se recomienda una imagen nítida.
+                </small>
+
+                <img id="bannerPreview" src="<%= artist.banner || 'https://placehold.co/400x120?text=Banner' %>" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+              </div>
+            </div>
+          </div>
+
+          <!-- 20 PALETAS DE COLORES -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-palette"></i> Paleta de Colores</h3>
+            <input type="hidden" name="paletaColoresId" id="paletaColoresInput" value="<%= artist.personalizacion?.paletaColoresId || 'paleta_1' %>">
+            <div class="paletas-grid" id="paletasContainer"></div>
+          </div>
+
+          <!-- 20 TIPOS DE FUENTE -->
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-font"></i> Tipografía del Profile</h3>
+            <div class="form-group">
+              <label>Selecciona una tipografía</label>
+              <select name="tipoLetra" id="tipoLetraSelect" onchange="actualizarPreviewFuente()">
+                <option value="Roboto">Roboto (Moderna & Limpia)</option>
+                <option value="Montserrat">Montserrat (Urbana & Fuerte)</option>
+                <option value="Open Sans">Open Sans (Equilibrada)</option>
+                <option value="Lato">Lato (Elegante)</option>
+                <option value="Oswald">Oswald (Rock / Condensada)</option>
+                <option value="Poppins">Poppins (Geométrica)</option>
+                <option value="Bebas Neue">Bebas Neue (Poster / Titulares)</option>
+                <option value="Merriweather">Merriweather (Editorial / Clásica)</option>
+                <option value="Playfair Display">Playfair Display (Sofisticada)</option>
+                <option value="Cinzel">Cinzel (Épica / Metal)</option>
+                <option value="Caveat">Caveat (Manuscrita / Acústica)</option>
+                <option value="Pacifico">Pacifico (Retro / Festiva)</option>
+                <option value="Abril Fatface">Abril Fatface (Impacto)</option>
+                <option value="Permanent Marker">Permanent Marker (Punk / Grafitti)</option>
+                <option value="Lobster">Lobster (Vintage)</option>
+                <option value="Comfortaa">Comfortaa (Suave / Indie)</option>
+                <option value="Fira Code">Fira Code (Electro / Tech)</option>
+                <option value="Righteous">Righteous (Synthwave / 80s)</option>
+                <option value="Satisfy">Satisfy (Artesanal)</option>
+                <option value="Raleway">Raleway (Minimalista)</option>
+              </select>
+            </div>
+
+            <label>Vista previa:</label>
+            <div class="font-preview-box" id="fontPreviewBox">
+              <%= artist.nombre %> - ¡En Vivo en toc.ar!
+            </div>
+          </div>
+
+          <button type="submit" class="btn-action"><i class="fas fa-save"></i> Guardar Cambios de Fan Page</button>
+        </section>
+
+        <!-- ================= 3. TAB EVENTOS ================= -->
+        <!-- ================= TAB EVENTOS ================= -->
+		<section id="tab-eventos" class="tab-content">
+		  <div style="margin-bottom: 25px;">
+			<a href="/events/new" class="btn-action" style="background: #22c55e;">
+			  <i class="fas fa-plus-circle"></i> Crear Nuevo Evento
+			</a>
+		  </div>
+
+		  <div class="card-panel">
+			<h3 class="section-header"><i class="fas fa-calendar-check"></i> Mis Eventos y Participaciones</h3>
+			
+			<% if (!misEventos || misEventos.length === 0) { %>
+			  <p style="color: var(--subtext); font-style: italic;">Aún no participas en eventos activos.</p>
+			<% } else { %>
+			  <% misEventos.forEach(ev => { %>
+				<% 
+				  const esCreador = (ev.creatorUser.toString() === currentUser._id.toString());
+				  const miInvitacion = ev.artistas.find(a => a.artistaId && a.artistaId.toString() === artist._id.toString());
+				  const miEstadoInvitacion = miInvitacion ? miInvitacion.estadoInvitacion : 'Pendiente';
+				  const estaCanceladoGlobal = (ev.estadoGeneral === 'Cancelado');
+				%>
+
+				<div class="event-card-item" id="event-card-<%= ev._id %>" style="background: #0f172a; border: 1px solid var(--border); padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+				  <div>
+					<h4 style="margin: 0 0 5px 0; color: #38bdf8; font-size: 16px;">
+					  <%= ev.nombre %> 
+					  <% if (esCreador) { %>
+						<span style="font-size: 11px; background: #0d4b75; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Creador</span>
+					  <% } else { %>
+						<span style="font-size: 11px; background: #334155; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Invitado</span>
+					  <% } %>
+					</h4>
+					
+					<p style="margin: 0; font-size: 13px; color: var(--subtext);">
+					  <i class="far fa-clock"></i> <%= new Date(ev.fechaInicio).toLocaleString('es-AR') %> hs | 
+					  <i class="fas fa-map-marker-alt"></i> <%= ev.establecimiento?.nombre || ev.direccionManual || 'Lugar por confirmar' %>
+					</p>
+				  </div>
+
+				  <!-- BOTONERA SEGÚN ROL Y ESTADO -->
+				  <div style="display: flex; gap: 8px; align-items: center;">
+					
+					<!-- REGLA 1: SI SOY INVITADO Y EL CREADOR CANCELÓ EL EVENTO -->
+					<% if (estaCanceladoGlobal && !esCreador) { %>
+					  <button type="button" class="btn-action" style="background: #ef4444;" onclick="descartarEventoCancelado('<%= ev._id %>')" title="Haz clic para quitarlo de la lista">
+						<i class="fas fa-ban"></i> Evento Cancelado
+					  </button>
+
+					<!-- REGLA 2: SI SOY EL CREADOR DEL EVENTO -->
+					<% } else if (esCreador) { %>
+					  <% if (estaCanceladoGlobal) { %>
+						<span style="color: #ef4444; font-weight: bold; font-size: 13px;"><i class="fas fa-times-circle"></i> Evento Cancelado</span>
+					  <% } else { %>
+						<a href="/events/edit/<%= ev._id %>" class="btn-action" style="background: #0284c7; padding: 8px 12px; font-size: 13px;">
+						  <i class="fas fa-edit"></i> Editar
+						</a>
+						<button type="button" class="btn-action" style="background: #ef4444; padding: 8px 12px; font-size: 13px;" onclick="cancelarEventoCreador('<%= ev._id %>')">
+						  <i class="fas fa-trash-alt"></i> Cancelar Evento
+						</button>
+					  <% } %>
+
+					<!-- REGLA 3: SI SOY INVITADO Y EL EVENTO SIGUE ACTIVO -->
+					<% } else { %>
+					  <% if (miEstadoInvitacion === 'Pendiente') { %>
+						<button type="button" class="btn-action" style="background: #22c55e; padding: 8px 14px; font-size: 13px;" onclick="responderInvitacion('<%= ev._id %>', 'Aceptado')">
+						  <i class="fas fa-check"></i> Aceptar Invitación
+						</button>
+					  <% } else if (miEstadoInvitacion === 'Aceptado') { %>
+						<button type="button" class="btn-action" style="background: #ef4444; padding: 8px 14px; font-size: 13px;" onclick="responderInvitacion('<%= ev._id %>', 'Rechazado')">
+						  <i class="fas fa-user-minus"></i> Me bajo del Evento
+						</button>
+					  <% } %>
+					<% } %>
+
+				  </div>
+				</div>
+			  <% }); %>
+			<% } %>
+		  </div>
+		</section>
+
+		<!-- FUNCIONES JAVASCRIPT AJAX -->
+		<script>
+		  // Responder / Bajarse del Evento
+		  async function responderInvitacion(eventId, estado) {
+			const msj = estado === 'Aceptado' 
+			  ? '¿Deseas confirmar tu participación en este evento?' 
+			  : '¿Estás seguro de que quieres bajarte de este evento?';
+
+			if (!confirm(msj)) return;
+
+			try {
+			  const res = await fetch(`/api/events/${eventId}/respond-invite`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ estado })
+			  });
+			  const data = await res.json();
+
+			  if (data.ok) window.location.reload();
+			  else alert('Ocurrió un error al procesar tu solicitud.');
+			} catch (e) {
+			  console.error(e);
+			  alert('Error de conexión.');
+			}
+		  }
+
+		  // Cancelar Evento (Creador)
+		  async function cancelarEventoCreador(eventId) {
+			if (!confirm('⚠️ ¿Estás seguro de cancelar este evento? Se notificarán a todos los invitados.')) return;
+
+			try {
+			  const res = await fetch(`/api/events/${eventId}/cancel`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
+			  });
+			  const data = await res.json();
+
+			  if (data.ok) {
+				alert('Evento cancelado exitosamente.');
+				window.location.reload();
+			  } else {
+				alert(data.error || 'No se pudo cancelar el evento.');
+			  }
+			} catch (e) {
+			  console.error(e);
+			  alert('Error de conexión.');
+			}
+		  }
+
+		  // Descartar evento cancelado (Desaparece de la lista del invitado)
+		  async function descartarEventoCancelado(eventId) {
+			try {
+			  const res = await fetch(`/api/events/${eventId}/dismiss-cancelled`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
+			  });
+			  const data = await res.json();
+
+			  if (data.ok) {
+				const card = document.getElementById(`event-card-${eventId}`);
+				if (card) {
+				  card.style.transition = 'all 0.3s ease';
+				  card.style.opacity = '0';
+				  card.style.transform = 'scale(0.9)';
+				  setTimeout(() => card.remove(), 300);
+				}
+			  } else {
+				alert('Error al descartar el evento.');
+			  }
+			} catch (e) {
+			  console.error(e);
+			  alert('Error de conexión.');
+			}
+		  }
+		</script>
+
+        <!-- ================= 4. TAB MENSAJES ================= -->
+        <section id="tab-mensajes" class="tab-content">
+          <div class="card-panel">
+            <h3 class="section-header"><i class="fas fa-comments"></i> Bandeja de Entrada</h3>
+            <p style="color: var(--subtext); font-style: italic;">No tienes mensajes en tu bandeja de entrada.</p>
+          </div>
+        </section>
+
+      </form>
+    </main>
+  </div>
+
+  <!-- ✂️ MODAL CROPPER UNIFICADO (LOGO Y BANNER) -->
+  <div class="modal-overlay" id="cropperModal">
+    <div class="modal-crop-box">
+      <h3 style="margin-top: 0; color: #38bdf8;" id="cropperTitle"><i class="fas fa-crop-alt"></i> Ajustar Imagen</h3>
+      <div class="crop-container">
+        <img id="cropperImage" src="" style="max-width: 100%;">
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+        <button type="button" class="btn-action" style="background: #475569;" onclick="cerrarCropper()">Cancelar</button>
+        <button type="button" class="btn-action" onclick="guardarRecorte()">Aplicar Recorte</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const paletas = [
+      { id: 'paleta_1', nombre: 'Dark Rock', c1: '#0f172a', c2: '#e75b37', c3: '#ffffff' },
+      { id: 'paleta_2', nombre: 'Neon Night', c1: '#120024', c2: '#00ffcc', c3: '#ffffff' },
+      { id: 'paleta_3', nombre: 'Classic Gold', c1: '#1a1a1a', c2: '#f1c40f', c3: '#f5f5f5' },
+      { id: 'paleta_4', nombre: 'Indigo Soul', c1: '#1e1b4b', c2: '#818cf8', c3: '#e0e7ff' },
+      { id: 'paleta_5', nombre: 'Crimson Punk', c1: '#180808', c2: '#ef4444', c3: '#fef2f2' },
+      { id: 'paleta_6', nombre: 'Emerald Blues', c1: '#062c24', c2: '#10b981', c3: '#ecfdf5' },
+      { id: 'paleta_7', nombre: 'Sunset Indie', c1: '#2d142c', c2: '#ff6b6b', c3: '#fff0f0' },
+      { id: 'paleta_8', nombre: 'Cyberpunk 80s', c1: '#19002e', c2: '#ff007f', c3: '#00f0ff' },
+      { id: 'paleta_9', nombre: 'Monochrome', c1: '#000000', c2: '#888888', c3: '#ffffff' },
+      { id: 'paleta_10', nombre: 'Vintage Sepia', c1: '#2b2118', c2: '#d97706', c3: '#fef3c7' },
+      { id: 'paleta_11', nombre: 'Oceanic Wave', c1: '#0f2b46', c2: '#38bdf8', c3: '#f0f9ff' },
+      { id: 'paleta_12', nombre: 'Purple Haze', c1: '#2e1065', c2: '#a855f7', c3: '#faf5ff' },
+      { id: 'paleta_13', nombre: 'Acoustic Wood', c1: '#271c19', c2: '#b45309', c3: '#fffbeb' },
+      { id: 'paleta_14', nombre: 'Electric Coral', c1: '#1c1917', c2: '#f97316', c3: '#fff7ed' },
+      { id: 'paleta_15', nombre: 'Midnight Velvet', c1: '#020617', c2: '#382bf0', c3: '#f8fafc' },
+      { id: 'paleta_16', nombre: 'Nordic Clean', c1: '#f8fafc', c2: '#0284c7', c3: '#0f172a' },
+      { id: 'paleta_17', nombre: 'Pastel Pop', c1: '#fdf2f8', c2: '#ec4899', c3: '#831843' },
+      { id: 'paleta_18', nombre: 'Forest Folk', c1: '#14532d', c2: '#84cc16', c3: '#f7fee7' },
+      { id: 'paleta_19', nombre: 'Industrial Rust', c1: '#18181b', c2: '#ea580c', c3: '#fafafa' },
+      { id: 'paleta_20', nombre: 'Royal Gold', c1: '#09090b', c2: '#eab308', c3: '#fefce8' }
+    ];
+
+    const container = document.getElementById('paletasContainer');
+    const inputPaleta = document.getElementById('paletaColoresInput');
+
+    paletas.forEach(p => {
+      const card = document.createElement('div');
+      card.className = `paleta-card ${p.id === inputPaleta.value ? 'selected' : ''}`;
+      card.onclick = () => seleccionarPaleta(p.id, card);
+      card.innerHTML = `
+        <div class="swatch-group">
+          <div class="swatch" style="background: ${p.c1};"></div>
+          <div class="swatch" style="background: ${p.c2};"></div>
+          <div class="swatch" style="background: ${p.c3};"></div>
+        </div>
+        <span style="font-size: 11px; color: var(--subtext); font-weight: bold;">${p.nombre}</span>
+      `;
+      container.appendChild(card);
+    });
+
+    function seleccionarPaleta(id, element) {
+      document.querySelectorAll('.paleta-card').forEach(c => c.classList.remove('selected'));
+      element.classList.add('selected');
+      inputPaleta.value = id;
+    }
+
+    function actualizarPreviewFuente() {
+      const fuente = document.getElementById('tipoLetraSelect').value;
+      const preview = document.getElementById('fontPreviewBox');
+      preview.style.fontFamily = `'${fuente}', sans-serif`;
+    }
+
+    const fuenteGuardada = '<%= artist.personalizacion?.tipoLetra || "Roboto" %>';
+    document.getElementById('tipoLetraSelect').value = fuenteGuardada;
+    actualizarPreviewFuente();
+
+    // ✂️ LÓGICA DE RECORTE DUAL (LOGO 1:1 Y BANNER 3:1)
+    let cropper;
+    let modoCropper = 'logo'; // 'logo' o 'banner'
+
+    const logoFileInput = document.getElementById('logoFileInput');
+    const bannerFileInput = document.getElementById('bannerFileInput');
+    const cropperModal = document.getElementById('cropperModal');
+    const cropperImage = document.getElementById('cropperImage');
+
+    logoFileInput.addEventListener('change', (e) => iniciarCropper(e, 'logo', 1));
+    bannerFileInput.addEventListener('change', (e) => iniciarCropper(e, 'banner', 3));
+
+    function iniciarCropper(e, modo, ratio) {
+      modoCropper = modo;
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        document.getElementById('cropperTitle').innerText = modo === 'logo' ? 'Recortar Logo (1:1)' : 'Recortar Banner Panorámico (3:1)';
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          cropperImage.src = event.target.result;
+          cropperModal.style.display = 'flex';
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(cropperImage, {
+            aspectRatio: ratio,
+            viewMode: 1
+          });
+        };
+        reader.readAsDataURL(files[0]);
+      }
+    }
+
+    function cerrarCropper() {
+      cropperModal.style.display = 'none';
+      logoFileInput.value = '';
+      bannerFileInput.value = '';
+    }
+
+	function guardarRecorte() {
+	  if (!cropper) return;
+
+	  if (modoCropper === 'logo') {
+		const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+		// Usamos image/jpeg con calidad 0.8 para comprimir
+		const base64 = canvas.toDataURL('image/jpeg', 0.8); 
+		document.getElementById('logoCroppedData').value = base64;
+		document.getElementById('logoPreview').src = base64;
+	  } else {
+		const canvas = cropper.getCroppedCanvas({ width: 1200, height: 400 });
+		// Usamos image/jpeg con calidad 0.75 para el banner panorámico
+		const base64 = canvas.toDataURL('image/jpeg', 0.75); 
+		document.getElementById('bannerCroppedData').value = base64;
+		document.getElementById('bannerPreview').src = base64;
+	  }
+	  cerrarCropper();
+	}
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>

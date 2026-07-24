@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Control | <%= artist.name %></title>
+  
+  <!-- FontAwesome para los iconos de redes, ubicaciones y menú -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* Inyección dinámica de la paleta de colores del artista */
+    :root {
+      --primary-color: <%= artist.theme?.primaryColor || '#0d4b75' %>;
+      --secondary-color: <%= artist.theme?.secondaryColor || '#e75b37' %>;
+      --background-color: <%= artist.theme?.backgroundColor || '#ffffff' %>;
+      --text-color: <%= artist.theme?.textColor || '#2d3748' %>;
+      --panel-bg: #f4f6f9;
+      --card-border-color: #a8e0d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Scroll fluido en toda la página */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 10px;
+    }
+
+    /* Contenedor principal con borde fino de 1px gris oscuro */
+    .mockup-container {
+      width: 100%;
+      max-width: 1100px;
+      background-color: #ffffff;
+      border-radius: 16px; 
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+      border: 1px solid #4a5568; /* Borde gris oscuro de 1px */
+      display: flex;
+      flex-direction: column;
+      height: 90vh; /* Altura de la tablet para el scroll interno */
+    }
+
+    /* HEADER COMPARTIDO */
+    .main-header {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 75px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    /* LOGO REDUCIDO Y CONTENIDO (Cambio para el Panel) */
+    .header-logo-contained {
+      width: 50px; 
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #cbd5e0; /* Borde gris claro */
+      background-color: #ffffff;
+    }
+
+    .header-title-container {
+      margin-left: 15px; /* Espacio reducido ya que el logo no flota */
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .btn-share-header {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    /* CONTENEDOR DE REDES Y MENÚ EN CABECERA */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .header-socials {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .header-socials a {
+      color: #ffffff;
+      font-size: 1.3rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .header-socials a:hover {
+      opacity: 0.8;
+    }
+
+    /* BOTÓN Y MENÚ DESPLEGABLE */
+    .menu-container {
+      position: relative;
+    }
+
+    .btn-menu-toggle {
+      background-color: var(--secondary-color); /* Naranja */
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+
+    .btn-menu-toggle:hover {
+      background-color: #d04a26;
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 50px;
+      right: 0;
+      background-color: #ffffff;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      z-index: 100;
+      min-width: 180px;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: block;
+      padding: 12px 20px;
+      color: #2d3748;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-bottom: 1px solid #edf2f7;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .dropdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f7fafc;
+      color: var(--primary-color);
+    }
+
+    /* DISTRIBUCIÓN DEL PANEL (Dos columnas con scroll interno) */
+    .panel-body-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* MENÚ LATERAL (Botones de pestaña estilo scrollspy) */
+    .sidebar-tabs { 
+      background: #f8fafc; 
+      padding: 25px 15px; 
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    
+    .tab-btn {
+      width: 100%;
+      text-align: left;
+      padding: 12px 15px;
+      border: none;
+      background: none;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn:hover { background-color: #edf2f7; color: var(--primary-color); }
+    .tab-btn.active { background-color: var(--primary-color); color: white; }
+
+    /* CONTENEDOR CON SCROLL ÚNICO PARA LAS SECCIONES */
+    .scroll-content {
+      padding: 40px;
+      overflow-y: auto;
+      height: 100%;
+      background-color: #ffffff;
+      scroll-behavior: smooth;
+    }
+
+    /* SECCIONES FORMULARIO */
+    .panel-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #edf2f7;
+      margin-bottom: 40px; /* Suficiente espacio para el scroll spy */
+    }
+
+    h2 { 
+      margin-bottom: 25px; 
+      color: #1a202c; 
+      border-bottom: 2px solid #edf2f7; 
+      padding-bottom: 10px; 
+      font-weight: 800; 
+      font-size: 1.4rem;
+    }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; color: #4a5568; }
+    
+    input[type="text"], input[type="email"], input[type="number"], textarea, select {
+      width: 100%; padding: 11px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.95rem;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+    /* SELECCIONADOR DE PALETAS */
+    .palette-option {
+      border: 2px solid #edf2f7; border-radius: 8px; padding: 15px; cursor: pointer; text-align: center;
+    }
+    .palette-option.selected { border-color: var(--secondary-color); background-color: #fff9f6; }
+    .color-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin: 2px; }
+
+    /* ESTILOS DEL ABM ELENCO */
+    .abm-container {
+      background: #f7fafc;
+      border: 1px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .cast-list-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    .cast-list-table th, .cast-list-table td {
+      padding: 12px;
+      border-bottom: 1px solid #edf2f7;
+      text-align: left;
+    }
+    
+    .cast-list-table th { background-color: #f7fafc; font-weight: bold; color: #4a5568; }
+    .avatar-mini { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    
+    /* BOTONES */
+    .btn-add {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-danger { background-color: #e53e3e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+
+    /* BARRA DE GUARDADO GLOBAL */
+    .save-action-bar {
+      padding: 20px 40px;
+      background-color: #ffffff;
+      border-top: 1px solid #edf2f7;
+      display: flex;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .btn-submit-global {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px 35px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: opacity 0.2s;
+    }
+
+    .btn-submit-global:hover {
+      opacity: 0.9;
+    }
+
+    /* COMPARTIDO: PIE DE PAGINA (FOOTER) */
+    .main-footer {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .footer-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .footer-socials {
+      display: flex;
+      gap: 15px;
+    }
+
+    .footer-socials a {
+      color: #ffffff;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mockup-container">
+    
+    <!-- HEADER COMPARTIDO CON PROFILE -->
+    <header class="main-header">
+      <div class="header-left">
+        <!-- Logo reducido y alineado dentro de la barra -->
+        <img src="<%= artist.logo %>" class="header-logo-contained" alt="Logo de <%= artist.name %>">
+        
+        <div class="header-title-container">
+          <span class="header-title"><%= artist.name %></span>
+          <button class="btn-share-header" title="Compartir"><i class="fa-solid fa-share-nodes"></i></button>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <div class="header-socials">
+          <% if (artist.socialLinks?.instagram) { %><a href="<%= artist.socialLinks.instagram %>" target="_blank"><i class="fa-brands fa-instagram"></i></a><% } %>
+          <% if (artist.socialLinks?.facebook) { %><a href="<%= artist.socialLinks.facebook %>" target="_blank"><i class="fa-brands fa-facebook-f"></i></a><% } %>
+          <% if (artist.socialLinks?.tiktok) { %><a href="<%= artist.socialLinks.tiktok %>" target="_blank"><i class="fa-brands fa-tiktok"></i></a><% } %>
+          <% if (artist.socialLinks?.youtube) { %><a href="<%= artist.socialLinks.youtube %>" target="_blank"><i class="fa-brands fa-youtube"></i></a><% } %>
+          <% if (artist.socialLinks?.email) { %><a href="mailto:<%= artist.socialLinks.email %>"><i class="fa-regular fa-envelope"></i></a><% } %>
+          <% if (artist.socialLinks?.whatsapp) { %><a href="<%= artist.socialLinks.whatsapp %>" target="_blank"><i class="fa-brands fa-whatsapp"></i></a><% } %>
+        </div>
+
+        <!-- Botón de Menú con Desplegable -->
+        <div class="menu-container">
+          <button class="btn-menu-toggle" onclick="toggleMenu()" title="Menú de Navegación">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="dropdown-menu" id="navigationMenu">
+            <a href="/" class="dropdown-item">Perfil</a>
+            <a href="#" class="dropdown-item" onclick="menuAction('Eventos')">Eventos</a>
+            <a href="#" class="dropdown-item" onclick="menuAction('Mensajes')">Mensajes</a>
+            <a href="#" class="dropdown-item" onclick="menuAction('Reseñas')">Reseñas</a>
+            <a href="#" class="dropdown-item" onclick="menuAction('Quien va a tocar!')">Quien va a tocar!</a>
+            <a href="#" class="dropdown-item" onclick="menuAction('Salir')">Salir</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PANEL BODY (LAYOUT DOS COLUMNAS) -->
+    <div class="panel-body-layout">
+      
+      <!-- MENU LATERAL -->
+      <aside class="sidebar-tabs">
+        <button class="tab-btn active" onclick="scrollToSection('basica')"><i class="fa-solid fa-circle-info"></i> Básica</button>
+        <button class="tab-btn" onclick="scrollToSection('espectaculo')"><i class="fa-solid fa-masks-theater"></i> Espectáculo</button>
+        <button class="tab-btn" onclick="scrollToSection('elenco-sec')"><i class="fa-solid fa-users"></i> Elenco</button>
+        <button class="tab-btn" onclick="scrollToSection('redes')"><i class="fa-solid fa-share-nodes"></i> Redes Sociales</button>
+        <button class="tab-btn" onclick="scrollToSection('personalizar')"><i class="fa-solid fa-palette"></i> Personalizar Sitio</button>
+        <button class="tab-btn" onclick="scrollToSection('establecimientos')"><i class="fa-solid fa-hotel"></i> Espacios</button>
+        <button class="tab-btn" onclick="scrollToSection('tecnica')"><i class="fa-solid fa-sliders"></i> Técnica</button>
+      </aside>
+
+      <!-- SECCIONES CON SCROLL INTERNO -->
+      <div class="scroll-content" id="scrollContent">
+        <form action="/panel/update" method="POST" id="panelForm">
+          
+          <!-- SECCIÓN: INFORMACIÓN BÁSICA -->
+          <section id="basica" class="panel-section">
+            <h2>Información Básica</h2>
+            <div class="form-group">
+              <label>Nombre del Artista / Banda</label>
+              <input type="text" name="name" value="<%= artist.name %>" required>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Logo URL (Imagen)</label>
+                <input type="text" name="logo" value="<%= artist.logo %>">
+              </div>
+              <div class="form-group">
+                <label>Banner URL (Imagen)</label>
+                <input type="text" name="banner" value="<%= artist.banner %>">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Reseña / Biografía</label>
+              <textarea name="bio" rows="6"><%= artist.bio %></textarea>
+            </div>
+          </section>
+
+          <!-- SECCIÓN: TIPO DE ESPECTÁCULO -->
+          <section id="espectaculo" class="panel-section">
+            <h2>Tipo de Espectáculo</h2>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Categoría</label>
+                <select name="category" id="categorySelect" onchange="updateSubcategories()">
+                  <option value="Música en Vivo" <%= artist.category === 'Música en Vivo' ? 'selected' : '' %>>Música en Vivo</option>
+                  <option value="Humor y Artes Escénicas" <%= artist.category === 'Humor y Artes Escénicas' ? 'selected' : '' %>>Humor y Artes Escénicas</option>
+                  <option value="Magia, Ilusionismo y Variedades" <%= artist.category === 'Magia, Ilusionismo y Variedades' ? 'selected' : '' %>>Magia, Ilusionismo y Variedades</option>
+                  <option value="Danza y Performance" <%= artist.category === 'Danza y Performance' ? 'selected' : '' %>>Danza y Performance</option>
+                  <option value="Literatura y Oratoria" <%= artist.category === 'Literatura y Oratoria' ? 'selected' : '' %>>Literatura y Oratoria</option>
+                  <option value="Shows Interactivos y de Entretenimiento" <%= artist.category === 'Shows Interactivos y de Entretenimiento' ? 'selected' : '' %>>Shows Interactivos y de Entretenimiento</option>
+                  <option value="Artes Plásticas y visuales" <%= artist.category === 'Artes Plásticas y visuales' ? 'selected' : '' %>>Artes Plásticas y visuales</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Subcategoría</label>
+                <select name="subcategory" id="subcategorySelect"></select>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECCIÓN: ELENCO -->
+          <section id="elenco-sec" class="panel-section">
+            <h2>Gestión de Elenco</h2>
+            <div class="abm-container">
+              <h3>Agregar nuevo integrante</h3>
+              <div style="margin-top:15px; display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:flex-end;">
+                <div>
+                  <label style="font-size:0.8rem;">Nombre y Apellido</label>
+                  <input type="text" id="castName" placeholder="Ej: Juan Pérez">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem;">Función dentro del elenco</label>
+                  <input type="text" id="castRole" placeholder="Ej: Voz y Armónica">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem;">Foto de Perfil URL (Opcional)</label>
+                  <input type="text" id="castPhoto" placeholder="Ej: /images/juan.jpg">
+                </div>
+                <button type="button" class="btn-add" onclick="addCastMember()">Agregar</button>
+              </div>
+            </div>
+
+            <table class="cast-list-table">
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Nombre y Apellido</th>
+                  <th>Función</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="castTableBody"></tbody>
+            </table>
+            <input type="hidden" name="castJSON" id="castJSON">
+          </section>
+
+          <!-- SECCIÓN: REDES SOCIALES -->
+          <section id="redes" class="panel-section">
+            <h2>Redes Sociales</h2>
+            <div class="grid-2">
+              <div class="form-group">
+                <label><i class="fa-brands fa-facebook-f"></i> Facebook URL</label>
+                <input type="text" name="socialLinks[facebook]" value="<%= artist.socialLinks?.facebook || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-brands fa-instagram"></i> Instagram URL</label>
+                <input type="text" name="socialLinks[instagram]" value="<%= artist.socialLinks?.instagram || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-brands fa-youtube"></i> Youtube URL</label>
+                <input type="text" name="socialLinks[youtube]" value="<%= artist.socialLinks?.youtube || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-brands fa-tiktok"></i> Tik Tok URL</label>
+                <input type="text" name="socialLinks[tiktok]" value="<%= artist.socialLinks?.tiktok || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-regular fa-envelope"></i> Correo Electrónico</label>
+                <input type="email" name="socialLinks[email]" value="<%= artist.socialLinks?.email || '' %>">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-brands fa-whatsapp"></i> WhatsApp (Número o Link)</label>
+                <input type="text" name="socialLinks[whatsapp]" value="<%= artist.socialLinks?.whatsapp || '' %>">
+              </div>
+            </div>
+          </section>
+
+          <!-- SECCIÓN: PERSONALIZAR -->
+          <section id="personalizar" class="panel-section">
+            <h2>Personalizar Sitio</h2>
+            <div class="form-group">
+              <label>Imagen de Fondo del Sitio (Opcional)</label>
+              <input type="text" name="backgroundImage" value="<%= artist.backgroundImage %>" placeholder="https://ejemplo.com/fondo.jpg">
+            </div>
+            <div class="form-group">
+              <label>Tipografía Principal</label>
+              <select name="fontFamily">
+                <% fonts.forEach(f => { %>
+                  <option value="<%= f.value %>" <%= artist.theme?.fontFamily === f.value ? 'selected' : '' %>><%= f.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Paleta de Colores Preestablecida</label>
+              <div class="grid-2">
+                <% palettes.forEach(p => { %>
+                  <div class="palette-option <%= artist.theme?.paletteName === p.name ? 'selected' : '' %>" onclick="selectPalette('<%= p.name %>')">
+                    <strong><%= p.name %></strong>
+                    <div style="margin-top:8px;">
+                      <span class="color-swatch" style="background-color: <%= p.primary %>"></span>
+                      <span class="color-swatch" style="background-color: <%= p.secondary %>"></span>
+                      <span class="color-swatch" style="background-color: <%= p.bg %>"></span>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+              <input type="hidden" name="selectedPalette" id="selectedPalette" value="<%= artist.theme?.paletteName %>">
+            </div>
+          </section>
+
+          <!-- SECCIÓN: ESPACIOS -->
+          <section id="establecimientos" class="panel-section">
+            <h2>Establecimientos y Preferencias</h2>
+            <div class="form-group">
+              <label>Tipos de espacio posibles:</label>
+              <div class="grid-3">
+                <% ['Sala', 'Teatro', 'Bar', 'Restaurante', 'Anfiteatros', 'Festivales', 'Sala de exposición'].forEach(space => { %>
+                  <label style="font-weight:normal;">
+                    <input type="checkbox" name="venuePreferences[types]" value="<%= space %>" <%= (artist.venuePreferences?.types || []).includes(space) ? 'checked' : '' %>> <%= space %>
+                  </label>
+                <% }) %>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Espectáculo requiere:</label>
+                <label style="font-weight:normal;"><input type="checkbox" name="venuePreferences[requiresSeating]" value="true" <%= artist.venuePreferences?.requiresSeating ? 'checked' : '' %>> Asientos numerados</label>
+                <label style="font-weight:normal;"><input type="checkbox" name="venuePreferences[requiresTableReservation]" value="true" <%= artist.venuePreferences?.requiresTableReservation ? 'checked' : '' %>> Reserva de mesas</label>
+              </div>
+              <div class="form-group">
+                <label>Estacionamiento Propio</label>
+                <select name="venuePreferences[parking]">
+                  <option value="SI" <%= artist.venuePreferences?.parking === 'SI' ? 'selected' : '' %>>SI</option>
+                  <option value="NO" <%= artist.venuePreferences?.parking === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="Opcional" <%= artist.venuePreferences?.parking === 'Opcional' || !artist.venuePreferences?.parking ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Capacidad Mínima de Espectadores</label>
+                <input type="number" name="venuePreferences[minCapacity]" value="<%= artist.venuePreferences?.minCapacity || 0 %>">
+              </div>
+              <div class="form-group">
+                <label>Capacidad Máxima de Espectadores</label>
+                <input type="number" name="venuePreferences[maxCapacity]" value="<%= artist.venuePreferences?.maxCapacity || 0 %>">
+              </div>
+            </div>
+          </section>
+
+          <!-- SECCIÓN: REQUISITOS TÉCNICOS -->
+          <section id="tecnica" class="panel-section">
+            <h2>Requisitos Técnicos del Lugar</h2>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Escenario</label>
+                <select name="technicalRequirements[stage]">
+                  <option value="SI" <%= artist.technicalRequirements?.stage === 'SI' ? 'selected' : '' %>>SI</option>
+                  <option value="NO" <%= artist.technicalRequirements?.stage === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="Opcional" <%= artist.technicalRequirements?.stage === 'Opcional' || !artist.technicalRequirements?.stage ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Sonido</label>
+                <select name="technicalRequirements[sound]">
+                  <option value="SI" <%= artist.technicalRequirements?.sound === 'SI' ? 'selected' : '' %>>SI</option>
+                  <option value="NO" <%= artist.technicalRequirements?.sound === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="Opcional" <%= artist.technicalRequirements?.sound === 'Opcional' || !artist.technicalRequirements?.sound ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Iluminación</label>
+                <select name="technicalRequirements[lighting]">
+                  <option value="SI" <%= artist.technicalRequirements?.lighting === 'SI' ? 'selected' : '' %>>SI</option>
+                  <option value="NO" <%= artist.technicalRequirements?.lighting === 'NO' ? 'selected' : '' %>>NO</option>
+                  <option value="Opcional" <%= artist.technicalRequirements?.lighting === 'Opcional' || !artist.technicalRequirements?.lighting ? 'selected' : '' %>>Opcional</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+        </form>
+      </div>
+
+    </div>
+
+    <!-- BOTÓN DE GUARDADO GLOBAL FIJO (Justo antes de compartir footer) -->
+    <div class="save-action-bar">
+      <button type="button" class="btn-submit-global" onclick="submitForm()">Guardar Cambios de todo el Perfil</button>
+    </div>
+
+    <!-- PIE DE PAGINA (FOOTER COMPARTIDO CON PROFILE) -->
+    <footer class="main-footer">
+      <div class="footer-brand">
+        <img src="/images/toc-ar-logo.png" class="footer-logo" alt="Logo de toc.ar">
+        <span>Quienva.toc.ar</span>
+      </div>
+      <div class="footer-socials">
+        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="mailto:info@toc.ar"><i class="fa-regular fa-envelope"></i></a>
+        <a href="#"><i class="fa-brands fa-whatsapp"></i></a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Toggle para el menú desplegable de la cabecera
+    function toggleMenu() {
+      const menu = document.getElementById('navigationMenu');
+      menu.classList.toggle('show');
+    }
+
+    window.onclick = function(event) {
+      if (!event.target.matches('.btn-menu-toggle') && !event.target.matches('.btn-menu-toggle *')) {
+        const dropdowns = document.getElementsByClassName("dropdown-menu");
+        for (let i = 0; i < dropdowns.length; i++) {
+          const openDropdown = dropdowns[i];
+          if (openDropdown.classList.contains('show')) {
+            openDropdown.classList.remove('show');
+          }
+        }
+      }
+    }
+
+    function menuAction(optionName) {
+      alert(`Presionaste la opción "${optionName}". Funcionalidad en desarrollo.`);
+    }
+
+    // --- MAPA DE CATEGORÍAS ---
+    const subcategoriesMap = {
+      "Música en Vivo": ["Acústico / Solista / Dúo", "Banda de Covers / Tributo", "Banda de Temas Propios (Rock, Pop, Indie, Metal, etc.)", "Folclore / Peña / Tango", "Música de Cámara / Clásica / Instrumental", "Cena Show / Jazz / Bossanova", "DJ Set / Live Set Electrónico", "Show de Gran Escala"],
+      "Humor y Artes Escénicas": ["Stand Up Comedy / Monólogos", "Café Concert / Varieté", "Microteatro", "Teatro de Texto (Comedia / Drama / Clásico)", "Improvisación Teatral (Impro)", "Teatro Infantil / Familiar"],
+      "Magia, Ilusionismo y Variedades": ["Magia de Cerca (Close-up)", "Magia de Escenario / Mentalismo", "Stand Up Magic", "Circo / Clown / Acrobacia"],
+      "Danza y Performance": ["Show de Danza Temática (Flamenco, Tango, Árabe, Salsa)", "Danza Contemporánea / Ballet", "Drag Show / Transformismo"],
+      "Literatura y Oratoria": ["Slam de Poesía / Poesía en vivo", "Charlas / Conferencias / Masterclass", "Presentaciones de Libros", "Charlas Debate"],
+      "Shows Interactivos y de Entretenimiento": ["Trivia Night / Juegos de Mesa en vivo", "Karaoke Show"],
+      "Artes Plásticas y visuales": ["JAM de dibujo / pintura / escultura", "Exposición de arte"]
+    };
+
+    function updateSubcategories() {
+      const category = document.getElementById('categorySelect').value;
+      const subSelect = document.getElementById('subcategorySelect');
+      subSelect.innerHTML = '';
+      
+      if (subcategoriesMap[category]) {
+        subcategoriesMap[category].forEach(sub => {
+          const opt = document.createElement('option');
+          opt.value = sub;
+          opt.innerHTML = sub;
+          if (sub === "<%= artist.subcategory %>") opt.selected = true;
+          subSelect.appendChild(opt);
+        });
+      }
+    }
+    updateSubcategories();
+
+    // --- ABM DE ELENCO ---
+    let castList = <%- JSON.stringify(artist.cast || []) %>;
+
+    function renderCast() {
+      const tbody = document.getElementById('castTableBody');
+      tbody.innerHTML = '';
+
+      castList.forEach((member, index) => {
+        const tr = document.createElement('tr');
+        const photoSrc = member.photo ? member.photo : 'https://via.placeholder.com/150?text=Sin+Foto';
+        
+        tr.innerHTML = `
+          <td><img src="${photoSrc}" class="avatar-mini" alt="${member.name}"></td>
+          <td><strong>${member.name}</strong></td>
+          <td>${member.role}</td>
+          <td>
+            <button type="button" class="btn-danger" onclick="removeCastMember(${index})">
+              <i class="fa-solid fa-trash"></i> Eliminar
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('castJSON').value = JSON.stringify(castList);
+    }
+
+    function addCastMember() {
+      const nameInput = document.getElementById('castName');
+      const roleInput = document.getElementById('castRole');
+      const photoInput = document.getElementById('castPhoto');
+
+      if (!nameInput.value.trim() || !roleInput.value.trim()) {
+        alert('Por favor, completa Nombre y Función del integrante.');
+        return;
+      }
+
+      castList.push({
+        name: nameInput.value.trim(),
+        role: roleInput.value.trim(),
+        photo: photoInput.value.trim()
+      });
+
+      nameInput.value = '';
+      roleInput.value = '';
+      photoInput.value = '';
+
+      renderCast();
+    }
+
+    function removeCastMember(index) {
+      if (confirm('¿Seguro que deseas eliminar este miembro?')) {
+        castList.splice(index, 1);
+        renderCast();
+      }
+    }
+    renderCast();
+
+    // --- SCROLLY SPY & NAVIGATION ---
+    function scrollToSection(id) {
+      const container = document.getElementById('scrollContent');
+      const target = document.getElementById(id);
+      if (target) {
+        container.scrollTo({
+          top: target.offsetTop - container.offsetTop,
+          behavior: 'smooth'
+        });
+      }
+    }
+
+    const observerOptions = {
+      root: document.getElementById('scrollContent'),
+      rootMargin: '0px',
+      threshold: 0.4
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+          
+          const buttonId = id === 'elenco-sec' ? 'elenco-sec' : id;
+          const activeBtn = document.querySelector(`.tab-btn[onclick*="'${buttonId}'"]`);
+          if (activeBtn) activeBtn.classList.add('active');
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.panel-section').forEach(section => {
+      observer.observe(section);
+    });
+
+    function selectPalette(name) {
+      document.getElementById('selectedPalette').value = name;
+      document.querySelectorAll('.palette-option').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+    }
+
+    function submitForm() {
+      document.getElementById('castJSON').value = JSON.stringify(castList);
+      document.getElementById('panelForm').submit();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión - toc.ar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .login-card {
+      background: #1e293b;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .login-header h1 {
+      margin: 0;
+      color: #38bdf8;
+      font-size: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #fff;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background: #e75b37;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: #d04825;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 25px 0;
+      position: relative;
+    }
+
+    .divider::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #334155;
+    }
+
+    .divider span {
+      position: relative;
+      background: #1e293b;
+      padding: 0 10px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .social-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .btn-google { background: #ea4335; }
+    .btn-facebook { background: #1877f2; }
+
+    .error-msg {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .test-credentials {
+      margin-top: 25px;
+      background: #0f172a;
+      padding: 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .test-credentials code { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="login-header">
+      <h1><i class="fas fa-ticket-alt"></i> toc.ar</h1>
+      <p style="color:#94a3b8; font-size:14px; margin-top:5px;">Ingreso al Panel de Control</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="error-msg"><%= error %></div>
+    <% } %>
+
+    <!-- FORMULARIO DE INGRESO TRADICIONAL -->
+    <form action="/auth/login" method="POST">
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Correo Electrónico</label>
+        <input type="email" name="email" placeholder="ejemplo@toc.ar" required>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Contraseña</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn-submit">Ingresar</button>
+    </form>
+
+    <div class="divider"><span>O INGRESÁ CON</span></div>
+
+    <!-- BOTONES DE OAUTH (GOOGLE / META) -->
+    <a href="/auth/google" class="social-btn btn-google"><i class="fab fa-google"></i> Continuar con Google</a>
+    <a href="/auth/facebook" class="social-btn btn-facebook"><i class="fab fa-facebook"></i> Continuar con Facebook</a>
+
+    <!-- CHAT DE PRUEBA RÁPIDA -->
+    <div class="test-credentials">
+      <strong>🔑 Accesos de Prueba (Clave: <code>123456</code>):</strong><br>
+      • Artista: <code>artista@toc.ar</code><br>
+      • Establecimiento: <code>oktober@toc.ar</code><br>
+      • Espectador: <code>espectador@toc.ar</code>
+    </div>
+  </div>
+
+</body>
+</html>
