@@ -179,6 +179,16 @@ exports.renderEditEvent = async (req, res) => {
       return res.status(403).send('No tienes permisos para editar este evento');
     }
 
+    // CORRECCIÓN: Si direccionManual es un objeto (dato corrupto antiguo), convertirlo a string o null
+    if (evento.direccionManual && typeof evento.direccionManual === 'object') {
+      // Intentar construir un string legible o simplemente limpiarlo
+      const dir = evento.direccionManual;
+      evento.direccionManual = `${dir.calle || ''} ${dir.numero || ''}, ${dir.ciudad || ''}, ${dir.provincia || ''}`.trim();
+      
+      // Guardar la corrección en la BD para futuros accesos
+      await Event.findByIdAndUpdate(eventId, { direccionManual: evento.direccionManual });
+    }
+
     let defaultArtist = null;
     let defaultPlace = null;
 
@@ -285,6 +295,18 @@ exports.updateEvent = async (req, res) => {
     const hayLugarPendiente = (estadoLugar === 'Pendiente');
     const estadoGeneral = (!hayArtistasPendientes && !hayLugarPendiente) ? 'Publicado' : 'Pendiente';
 
+    // CORRECCIÓN: Asegurar que direccionManual sea un string o null antes de guardar
+    let direccionManualFinal = null;
+    if (!establecimientoId) {
+      // Si es un objeto (dato corrupto), intentar convertirlo
+      if (typeof direccionManual === 'object' && direccionManual !== null) {
+        const dir = direccionManual;
+        direccionManualFinal = `${dir.calle || ''} ${dir.numero || ''}, ${dir.ciudad || ''}, ${dir.provincia || ''}`.trim();
+      } else if (typeof direccionManual === 'string') {
+        direccionManualFinal = direccionManual;
+      }
+    }
+
     await Event.findByIdAndUpdate(eventId, {
       nombre,
       estadoGeneral,
@@ -292,7 +314,7 @@ exports.updateEvent = async (req, res) => {
       artistas: artistasOrdenados,
       establecimiento: establecimientoId || null,
       estadoInvitacionLugar: estadoLugar,
-      direccionManual: !establecimientoId ? direccionManual : null,
+      direccionManual: direccionManualFinal,
       location: { type: 'Point', coordinates: coords },
       tipoEntrada,
       linkExterno: tipoEntrada === 'Link Externo' ? linkExterno : null,
